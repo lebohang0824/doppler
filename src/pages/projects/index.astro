@@ -198,7 +198,7 @@ const projectId = Astro.url.searchParams.get('project_id');
 
   .project-card.active {
     border-color: var(--primary-color);
-    background-color: #fcfeff;
+    background-color: var(--bg-color);
   }
 
   .card-header {
@@ -210,20 +210,21 @@ const projectId = Astro.url.searchParams.get('project_id');
 
   .project-card h3 {
     margin: 0;
-    color: var(--sidebar-bg);
+    color: var(--primary-color);
   }
 
   .project-card p {
-    color: #666;
+    color: var(--text-color);
+    opacity: 0.8;
     margin-bottom: 1rem;
     flex-grow: 1;
   }
 
   .card-footer {
-    border-top: 1px solid #eee;
+    border-top: 1px solid var(--bg-color);
     padding-top: 0.75rem;
     font-size: 0.85rem;
-    color: #95a5a6;
+    color: var(--accent-color);
   }
 
   .directory {

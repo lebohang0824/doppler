@@ -1,8 +1,13 @@
 ---
 import DashboardLayout from '../layouts/DashboardLayout.astro';
+
+// Read project_id from search params on the server-side
+const currentProjectId = Astro.url.searchParams.get('project_id');
 ---
 
-<DashboardLayout title='Dashboard'>
+<DashboardLayout
+  title='Dashboard'
+  projectId={currentProjectId}>
   <div x-data='dashboard()'>
     <!-- Header -->
     <div class='header'>
@@ -379,8 +384,13 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
         }
       },
 
-      switchProject(project) {
-        window.location.href = `/?project_id=${project.id}`;
+      switchProject(project, reload = true) {
+        this.activeProject = project;
+        if (reload) {
+          window.location.href = `/?project_id=${project.id}`;
+        } else {
+          this.fetchLogs();
+        }
       },
 
       async fetchLogs() {
@@ -472,7 +482,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 
   .cards-grid {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 2fr 1fr;
     gap: 1.5rem;
   }
 
@@ -502,20 +512,20 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
   .card-header h2 {
     font-size: 1.1rem;
     margin: 0;
-    color: var(--sidebar-bg);
+    color: var(--primary-color);
   }
 
   .refresh-btn {
     background: none;
     border: none;
     cursor: pointer;
-    color: #95a5a6;
+    color: var(--accent-color);
     padding: 0.25rem;
     border-radius: 4px;
   }
 
   .refresh-btn:hover {
-    background-color: #f0f0f0;
+    background-color: var(--bg-color);
     color: var(--primary-color);
   }
 
@@ -537,7 +547,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
   }
 
   .log-icon {
-    color: #3498db;
+    color: var(--primary-color);
     margin-top: 0.25rem;
   }
 
@@ -554,23 +564,24 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 
   .log-action {
     font-weight: bold;
-    color: #2c3e50;
+    color: var(--text-color);
   }
 
   .log-date {
-    color: #95a5a6;
+    color: var(--accent-color);
     font-size: 0.75rem;
   }
 
   .log-summary {
-    color: #555;
+    color: var(--text-color);
     font-size: 0.9rem;
     line-height: 1.4;
+    opacity: 0.9;
   }
 
   .log-issue {
     font-size: 0.75rem;
-    color: #95a5a6;
+    color: var(--accent-color);
     margin-top: 0.25rem;
   }
 
@@ -588,12 +599,12 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
   .info-row .label {
     font-size: 0.8rem;
     text-transform: uppercase;
-    color: #95a5a6;
+    color: var(--accent-color);
     font-weight: bold;
   }
 
   .info-row .value {
-    color: #2c3e50;
+    color: var(--text-color);
     font-size: 1rem;
   }
 
@@ -619,16 +630,16 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
     text-align: center;
     background: white;
     border-radius: 8px;
-    border: 2px dashed #e0e0e0;
+    border: 2px dashed var(--border-color);
   }
 
   .empty-content h2 {
-    color: #7f8c8d;
+    color: var(--primary-color);
     margin-bottom: 0.5rem;
   }
 
   .empty-content p {
-    color: #95a5a6;
+    color: var(--accent-color);
     margin-bottom: 2rem;
   }
 
@@ -646,7 +657,8 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
     text-align: left;
     padding: 0.75rem 1rem;
     background: white;
-    border: 1px solid #eee;
+    border: 1px solid var(--border-color);
+    opacity: 0.8;
     border-radius: 6px;
     cursor: pointer;
     display: flex;
@@ -654,30 +666,32 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
   }
 
   .project-option:hover {
-    background-color: #f9f9f9;
-    border-color: #ddd;
+    background-color: var(--bg-color);
+    border-color: var(--primary-color);
+    opacity: 1;
   }
 
   .project-option.active {
     border-color: var(--primary-color);
-    background-color: #fcfeff;
+    background-color: var(--bg-color);
+    opacity: 1;
   }
 
   .project-name {
     font-weight: bold;
-    color: #2c3e50;
+    color: var(--text-color);
   }
 
   .project-dir {
     font-size: 0.8rem;
-    color: #95a5a6;
+    color: var(--accent-color);
   }
 
   .loading-state,
   .empty-state-small {
     padding: 2rem;
     text-align: center;
-    color: #95a5a6;
+    color: var(--accent-color);
   }
 
   .no-projects {
@@ -687,6 +701,6 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 
   .no-projects p {
     margin-bottom: 1rem;
-    color: #95a5a6;
+    color: var(--accent-color);
   }
 </style>

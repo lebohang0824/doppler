@@ -1,12 +1,13 @@
 :root {
-  --sidebar-width: 250px;
-  --bg-color: #f4f4f9;
-  --text-color: #333;
-  --sidebar-bg: #2c3e50;
-  --sidebar-text: #ecf0f1;
-  --primary-color: #3498db;
-  --accent-color: #e74c3c;
-  --border-color: #ddd;
+  --sidebar-width: 260px;
+  --bg-color: #f8f9fa;
+  --text-color: #494e5b;
+  --sidebar-bg: #36333b;
+  --sidebar-text: #95ccbf;
+  --primary-color: #668b98;
+  --accent-color: #78acae;
+  --border-color: #586b7b;
+  --card-bg: #ffffff;
 }
 
 * {
@@ -80,7 +81,7 @@ button {
 }
 
 .btn:hover {
-  background-color: #2980b9;
+  background-color: var(--accent-color);
 }
 
 /* Modal styles */
@@ -119,7 +120,7 @@ button {
 .modal-header h2 {
   font-size: 1.25rem;
   margin: 0;
-  color: var(--sidebar-bg);
+  color: var(--primary-color);
 }
 
 .modal-body {
@@ -134,11 +135,11 @@ button {
 .modal-section-title {
   font-size: 0.9rem;
   font-weight: bold;
-  color: #7f8c8d;
+  color: var(--accent-color);
   margin-bottom: 1rem;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  border-bottom: 1px solid #f0f0f0;
+  border-bottom: 1px solid var(--bg-color);
   padding-bottom: 0.5rem;
 }
 
@@ -151,6 +152,7 @@ button {
   margin-bottom: 0.5rem;
   font-weight: bold;
   font-size: 0.9rem;
+  color: var(--text-color);
 }
 
 .form-group input,
@@ -162,6 +164,8 @@ button {
   border-radius: 4px;
   font-family: inherit;
   font-size: 0.95rem;
+  background-color: white;
+  color: var(--text-color);
 }
 
 .form-group textarea {
@@ -175,23 +179,23 @@ button {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  background-color: #f9f9f9;
+  background-color: var(--bg-color);
   border-bottom-left-radius: 8px;
   border-bottom-right-radius: 8px;
 }
 
 .btn-secondary {
-  background-color: #95a5a6;
+  background-color: var(--accent-color);
 }
 
 .btn-secondary:hover {
-  background-color: #7f8c8d;
+  background-color: var(--border-color);
 }
 
 .close-btn {
   font-size: 1.5rem;
   line-height: 1;
-  color: #95a5a6;
+  color: var(--accent-color);
   padding: 0.25rem;
   display: flex;
   align-items: center;
@@ -200,7 +204,7 @@ button {
 }
 
 .close-btn:hover {
-  color: var(--accent-color);
+  color: var(--primary-color);
 }
 
 .form-row {
