@@ -24,11 +24,12 @@ export function isGeminiRunning() {
  * Queues a Gemini CLI request.
  * @param {string[]} args - The arguments for the gemini command.
  * @param {string} cwd - The working directory to run the command in.
+ * @param {Object} options - Extra options (onStart).
  * @returns {Promise<string>} - Resolves with stdout or rejects with error.
  */
-export function runGeminiRequest(args, cwd) {
+export function runGeminiRequest(args, cwd, options = {}) {
   return new Promise((resolve, reject) => {
-    queue.push({ args, cwd, resolve, reject });
+    queue.push({ args, cwd, resolve, reject, onStart: options.onStart });
     processQueue();
   });
 }
@@ -37,7 +38,15 @@ async function processQueue() {
   if (isRunning || queue.length === 0) return;
 
   isRunning = true;
-  const { args, cwd, resolve, reject } = queue.shift();
+  const { args, cwd, resolve, reject, onStart } = queue.shift();
+
+  if (onStart) {
+    try {
+      await onStart();
+    } catch (e) {
+      console.error('Error in onStart callback:', e);
+    }
+  }
 
   try {
     const result = await executeGemini(args, cwd);

@@ -80,9 +80,9 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
                     x-text='log.summary'
                   ></div>
                   <div
-                    class='log-issue'
-                    x-text="'Issue: ' + log.issue_title"
-                  ></div>
+                    class='log-issue'>
+                    Issue: <a :href="'/issues/' + log.issue_id" class="issue-link" x-text="log.issue_title"></a>
+                  </div>
                 </div>
               </div>
             </template>
@@ -530,6 +530,16 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
     font-size: 0.75rem;
     color: var(--accent-color);
     margin-top: 0.25rem;
+  }
+
+  .issue-link {
+    color: var(--primary-color);
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  .issue-link:hover {
+    color: var(--accent-color);
   }
 
   .info-content {

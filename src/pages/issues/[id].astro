@@ -1,0 +1,341 @@
+---
+import DashboardLayout from '../../layouts/DashboardLayout.astro';
+import { db, Issue, Project, eq } from 'astro:db';
+
+const { id } = Astro.params;
+
+if (!id) {
+    return Astro.redirect('/issues');
+}
+
+const issueResult = await db.select().from(Issue).where(eq(Issue.id, id));
+const issue = issueResult[0];
+
+if (!issue) {
+    return Astro.redirect('/issues');
+}
+
+const projectResult = await db.select().from(Project).where(eq(Project.id, issue.project_id));
+const project = projectResult[0];
+
+const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
+---
+
+<DashboardLayout title={title}>
+  <div x-data={`issueDetail({ id: '${id}', projectId: '${issue.project_id}', initialStatus: '${issue.status}' })`}>
+    <div class="header">
+        <div class="title-section">
+            <a :href="'/issues?project_id=' + projectId" class="btn btn-secondary btn-small">
+                <i class="fa-solid fa-arrow-left"></i> Back
+            </a>
+            <h1>{issue.title}</h1>
+        </div>
+        <div class="header-actions">
+            <template x-if="status === 'todo' || status === 'queued'">
+                <button 
+                    @click="executeIssue()" 
+                    class="btn"
+                    :class="isGlobalRunning ? 'btn-secondary' : 'btn-primary'"
+                    :disabled="isExecuting">
+                    <i class="fa-solid" :class="isGlobalRunning ? 'fa-clock' : 'fa-play'"></i>
+                    <span x-text="isGlobalRunning ? 'Queue Task' : 'Execute'"></span>
+                </button>
+            </template>
+            <template x-if="status === 'executing'">
+                <div class="status-running">
+                    <i class="fa-solid fa-spinner fa-spin"></i> Executing...
+                </div>
+            </template>
+        </div>
+    </div>
+
+    <div class="dashboard-content">
+        <div class="cards-grid">
+            <div class="main-column">
+                <!-- Details Card -->
+                <div class="card details-card">
+                    <div class="card-header">
+                        <h2>Issue Details</h2>
+                        <span class={`status-badge ${issue.status}`} x-text="status"></span>
+                    </div>
+                    <div class="card-body">
+                        <div class="detail-section">
+                            <label>Description</label>
+                            <p>{issue.description}</p>
+                        </div>
+                        <div class="meta-grid">
+                            <div class="meta-item">
+                                <label>Type</label>
+                                <span class={`type-badge ${issue.type.toLowerCase()}`}>{issue.type}</span>
+                            </div>
+                            <div class="meta-item">
+                                <label>Priority</label>
+                                <span class={`priority ${issue.priority}`}>{issue.priority}</span>
+                            </div>
+                            <div class="meta-item">
+                                <label>Project</label>
+                                <span>{project?.name}</span>
+                            </div>
+                            <div class="meta-item">
+                                <label>Created</label>
+                                <span>{new Date(issue.created_at).toLocaleString()}</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Reports Card -->
+                <div class="card reports-card">
+                    <div class="card-header">
+                        <h2>Execution Results</h2>
+                    </div>
+                    <div class="reports-list">
+                        <template x-if="loadingReports">
+                            <div class="loading-state">Loading results...</div>
+                        </template>
+                        <template x-if="!loadingReports && reports.length === 0">
+                            <div class="empty-state-small">No results yet.</div>
+                        </template>
+                        <template x-for="report in reports" :key="report.id">
+                            <div class="report-item">
+                                <div class="report-header">
+                                    <span class="report-date" x-text="new Date(report.created_at).toLocaleString()"></span>
+                                </div>
+                                <div class="report-details" x-text="report.details"></div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+
+            <div class="side-column">
+                <!-- Logs Card -->
+                <div class="card logs-card">
+                    <div class="card-header">
+                        <h2>Issue History</h2>
+                        <button @click="fetchLogs()" class="refresh-btn">
+                            <i class="fa-solid fa-rotate-right"></i>
+                        </button>
+                    </div>
+                    <div class="logs-list">
+                        <template x-if="loadingLogs">
+                            <div class="loading-state">Loading logs...</div>
+                        </template>
+                        <template x-for="log in logs" :key="log.id">
+                            <div class="log-item">
+                                <div class="log-icon">
+                                    <i class="fa-solid fa-circle-info"></i>
+                                </div>
+                                <div class="log-content">
+                                    <div class="log-header">
+                                        <span class="log-action" x-text="log.action"></span>
+                                        <span class="log-date" x-text="new Date(log.created_at).toLocaleTimeString()"></span>
+                                    </div>
+                                    <div class="log-summary" x-text="log.summary"></div>
+                                </div>
+                            </div>
+                        </template>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+  </div>
+</DashboardLayout>
+
+<script is:inline>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('issueDetail', ({ id, projectId, initialStatus }) => ({
+      id,
+      projectId,
+      status: initialStatus || '',
+      isGlobalRunning: false,
+      isExecuting: false,
+      logs: [],
+      reports: [],
+      loadingLogs: true,
+      loadingReports: true,
+      
+      async init() {
+        await this.fetchStatus();
+        await this.fetchLogs();
+        await this.fetchReports();
+        
+        // Auto refresh if executing
+        setInterval(() => {
+            this.fetchStatus();
+            if (this.status === 'executing' || this.status === 'queued') {
+                this.fetchLogs();
+                this.fetchReports();
+            }
+        }, 3000);
+      },
+      
+      async fetchStatus() {
+        try {
+            const res = await fetch(`/api/issues/${this.id}`);
+            if (res.ok) {
+                const data = await res.json();
+                this.status = data.status;
+            }
+            
+            const globalRes = await fetch('/api/status');
+            if (globalRes.ok) {
+                const data = await globalRes.json();
+                this.isGlobalRunning = data.running;
+            }
+        } catch (e) {
+            console.error('Failed to fetch status', e);
+        }
+      },
+      
+      async fetchLogs() {
+        this.loadingLogs = true;
+        try {
+            const res = await fetch(`/api/issues/${this.id}/logs`);
+            if (res.ok) {
+                this.logs = await res.json();
+            }
+        } finally {
+            this.loadingLogs = false;
+        }
+      },
+
+      async fetchReports() {
+        this.loadingReports = true;
+        try {
+            const res = await fetch(`/api/issues/${this.id}/reports`);
+            if (res.ok) {
+                this.reports = await res.json();
+            }
+        } finally {
+            this.loadingReports = false;
+        }
+      },
+      
+      async executeIssue() {
+        this.isExecuting = true;
+        try {
+            const res = await fetch(`/api/issues/${this.id}/execute`, { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json();
+                this.status = data.status;
+                this.fetchLogs();
+            } else {
+                alert('Failed to start execution');
+            }
+        } catch (e) {
+            console.error('Execution error', e);
+            alert('An error occurred');
+        } finally {
+            this.isExecuting = false;
+        }
+      }
+    }));
+  });
+</script>
+
+<style>
+  .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+  }
+  
+  .title-section {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+  }
+
+  .title-section h1 {
+      margin: 0;
+      font-size: 1.5rem;
+  }
+
+  .status-running {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: var(--primary-color);
+      font-weight: bold;
+  }
+
+  .cards-grid {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1.5rem;
+  }
+
+  .card-body {
+      padding: 1.5rem;
+  }
+
+  .detail-section {
+      margin-bottom: 1.5rem;
+  }
+
+  .detail-section label {
+      display: block;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      color: var(--accent-color);
+      margin-bottom: 0.5rem;
+      font-weight: bold;
+  }
+
+  .meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      padding-top: 1.5rem;
+  }
+
+  .meta-item label {
+      display: block;
+      font-size: 0.75rem;
+      color: var(--accent-color);
+      margin-bottom: 0.25rem;
+  }
+
+  .reports-list {
+      padding: 0;
+  }
+
+  .report-item {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+  }
+
+  .report-item:last-child {
+      border-bottom: none;
+  }
+
+  .report-header {
+      margin-bottom: 0.5rem;
+  }
+
+  .report-date {
+      font-size: 0.8rem;
+      color: var(--accent-color);
+  }
+
+  .report-details {
+      white-space: pre-wrap;
+      font-family: monospace;
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+  }
+
+  @media (max-width: 768px) {
+      .cards-grid {
+          grid-template-columns: 1fr;
+      }
+  }
+</style>

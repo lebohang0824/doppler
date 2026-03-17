@@ -1,7 +1,7 @@
 import { db, Issue, Project, Log, eq } from 'astro:db';
 
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
-const VALID_STATUSES = ['todo', 'testing', 'done'];
+const VALID_STATUSES = ['todo', 'queued', 'executing', 'testing', 'done'];
 const VALID_TYPES = ['Bug', 'Tweak', 'Enhancement'];
 
 export const GET = async ({ url }) => {
