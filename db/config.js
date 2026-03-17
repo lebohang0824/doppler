@@ -24,7 +24,18 @@ const Issue = defineTable({
   },
 });
 
+const Report = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    issue_id: column.text({ references: () => Issue.columns.id }),
+    summary: column.text({ optional: true }),
+    files_changed: column.json({ optional: true }),
+    details: column.text({ optional: true }),
+    created_at: column.date({ default: NOW }),
+  },
+});
+
 // https://astro.build/db/config
 export default defineDb({
-  tables: { Project, Issue },
+  tables: { Project, Issue, execution_reports: Report },
 });
