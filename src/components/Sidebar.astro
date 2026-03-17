@@ -66,24 +66,34 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
       <h3>Issue Status</h3>
       <ul class="status-list">
         <li>
-          <span class="label">Todo</span>
-          <span class="counter">{counts.todo}</span>
+          <a href={`/issues?status=todo${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
+            <span class="label">Todo</span>
+            <span class="counter">{counts.todo}</span>
+          </a>
         </li>
         <li>
-          <span class="label">Queued</span>
-          <span class="counter">{counts.queued}</span>
+          <a href={`/issues?status=queued${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
+            <span class="label">Queued</span>
+            <span class="counter">{counts.queued}</span>
+          </a>
         </li>
         <li>
-          <span class="label">Executing</span>
-          <span class="counter">{counts.executing}</span>
+          <a href={`/issues?status=executing${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
+            <span class="label">Executing</span>
+            <span class="counter">{counts.executing}</span>
+          </a>
         </li>
         <li>
-          <span class="label">Testing</span>
-          <span class="counter">{counts.testing}</span>
+          <a href={`/issues?status=testing${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
+            <span class="label">Testing</span>
+            <span class="counter">{counts.testing}</span>
+          </a>
         </li>
         <li>
-          <span class="label">Done</span>
-          <span class="counter">{counts.done}</span>
+          <a href={`/issues?status=done${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
+            <span class="label">Done</span>
+            <span class="counter">{counts.done}</span>
+          </a>
         </li>
       </ul>
     </div>
@@ -160,16 +170,17 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
   }
 
   .status-list li {
-    display: flex;
+    margin-bottom: 0.25rem;
+  }
+
+  .status-link {
     justify-content: space-between;
-    align-items: center;
     padding: 0.5rem 1rem;
-    color: #bdc3c7;
-    border-radius: 4px;
+    width: 100%;
   }
   
   .status-list li:hover {
-     background-color: rgba(255,255,255,0.05);
+     background-color: transparent;
   }
 
   .counter {
