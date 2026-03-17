@@ -7,40 +7,12 @@ const projectId = Astro.url.searchParams.get('project_id');
 ---
 
 <DashboardLayout title='Projects'>
-  <div
-    x-data="{ 
-    open: false, 
-    error: null,
-    async submit(event) {
-        this.error = null;
-        const formData = new FormData(event.target);
-        const data = Object.fromEntries(formData.entries());
-        
-        try {
-            const res = await fetch('/api/projects', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(data)
-            });
-            
-            if (res.ok) {
-                this.open = false;
-                window.location.reload();
-            } else {
-                const result = await res.json();
-                this.error = result.error || 'Failed to create project';
-            }
-        } catch(e) {
-            this.error = 'An error occurred';
-            console.error(e);
-        }
-    }
-  }">
+  <div x-data="projects()">
     <div class='header'>
       <h1>Projects</h1>
       <button
         class='btn'
-        @click='open = true'>
+        @click='openCreate()'>
         <i class="fa-solid fa-plus"></i>
         <span>Add Project</span>
       </button>
@@ -52,9 +24,10 @@ const projectId = Astro.url.searchParams.get('project_id');
           <p>No projects found. Create one to get started!</p>
         ) : (
           projects.map((project) => (
-            <a
-              href={`?project_id=${project.id}`}
-              class={`project-card ${project.id === projectId ? 'active' : ''}`}>
+            <div
+              @click={`openEdit(${JSON.stringify(project)})`}
+              class={`project-card ${project.id === projectId ? 'active' : ''}`}
+              style="cursor: pointer;">
               <div class='card-header'>
                 <h3>{project.name}</h3>
                 {project.id === projectId && (
@@ -71,7 +44,7 @@ const projectId = Astro.url.searchParams.get('project_id');
                   <i class="fa-solid fa-folder-open"></i> {project.directory}
                 </span>
               </div>
-            </a>
+            </div>
           ))
         )
       }
@@ -87,21 +60,30 @@ const projectId = Astro.url.searchParams.get('project_id');
         class='modal'
         @click.away='open = false'>
         <div class='modal-header'>
-          <h2>Add New Project</h2>
+          <h2 x-text="mode === 'create' ? 'Add New Project' : 'Project Details'"></h2>
           <button
             @click='open = false'
             class='close-btn'>
             <i class="fa-solid fa-xmark"></i>
           </button>
         </div>
-        <form @submit.prevent='submit($event)'>
-          <div class='modal-body'>
+        <form @submit.prevent='submit()'>
+          <div class='modal-body' style="position: relative;">
+            <button
+                x-show="mode === 'edit'"
+                type='button'
+                class='btn btn-success btn-compact activate-top-btn'
+                @click='activateProject()'
+                title="Activate Project">
+                <i class="fa-solid fa-bolt"></i>
+            </button>
+
             <div class='form-group'>
               <label for='name'>Project Name</label>
               <input
                 type='text'
                 id='name'
-                name='name'
+                x-model='projectForm.name'
                 required
                 placeholder='e.g. Dangerous Doppler'
               />
@@ -110,7 +92,7 @@ const projectId = Astro.url.searchParams.get('project_id');
               <label for='description'>Description</label>
               <textarea
                 id='description'
-                name='description'
+                x-model='projectForm.description'
                 placeholder='Project details...'
               ></textarea>
             </div>
@@ -119,7 +101,7 @@ const projectId = Astro.url.searchParams.get('project_id');
               <input
                 type='text'
                 id='directory'
-                name='directory'
+                x-model='projectForm.directory'
                 required
                 placeholder='/path/to/project'
               />
@@ -132,26 +114,121 @@ const projectId = Astro.url.searchParams.get('project_id');
             ></p>
           </div>
 
-          <div class='modal-actions'>
-            <button
-              type='button'
-              class='btn btn-secondary'
-              @click='open = false'>
-              <i class="fa-solid fa-xmark"></i>
-              <span>Cancel</span>
-            </button>
-            <button
-              type='submit'
-              class='btn'>
-              <i class="fa-solid fa-floppy-disk"></i>
-              <span>Create Project</span>
-            </button>
+          <div class='modal-actions-wrapper'>
+              <div x-show="mode === 'edit'" class="danger-zone">
+                  <label class="toggle-switch">
+                      <input type="checkbox" x-model="confirmDelete">
+                      <span class="slider"></span>
+                  </label>
+                  <button
+                    type='button'
+                    class='btn btn-danger btn-small'
+                    :disabled='!confirmDelete'
+                    @click='deleteProject()'>
+                    <i class="fa-solid fa-trash"></i>
+                    <span>Delete</span>
+                  </button>
+              </div>
+              <div class="right-actions">
+                  <button
+                    type='button'
+                    class='btn btn-secondary'
+                    @click='open = false'>
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Cancel</span>
+                  </button>
+                  <button
+                    type='submit'
+                    class='btn'>
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span x-text="mode === 'create' ? 'Create Project' : 'Save Changes'"></span>
+                  </button>
+              </div>
           </div>
         </form>
       </div>
     </div>
   </div>
 </DashboardLayout>
+
+<script is:inline>
+  document.addEventListener('alpine:init', () => {
+    Alpine.data('projects', () => ({
+      open: false,
+      mode: 'create',
+      error: null,
+      confirmDelete: false,
+      projectForm: {
+        id: '',
+        name: '',
+        description: '',
+        directory: ''
+      },
+      openCreate() {
+        this.mode = 'create';
+        this.projectForm = { id: '', name: '', description: '', directory: '' };
+        this.error = null;
+        this.confirmDelete = false;
+        this.open = true;
+      },
+      openEdit(project) {
+        this.mode = 'edit';
+        this.projectForm = { ...project };
+        this.error = null;
+        this.confirmDelete = false;
+        this.open = true;
+      },
+      async submit() {
+        this.error = null;
+        const url = this.mode === 'create' ? '/api/projects' : `/api/projects/${this.projectForm.id}`;
+        const method = this.mode === 'create' ? 'POST' : 'PATCH';
+        
+        try {
+          const res = await fetch(url, {
+            method: method,
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.projectForm)
+          });
+          
+          if (res.ok) {
+            this.open = false;
+            window.location.reload();
+          } else {
+            const result = await res.json();
+            this.error = result.error || `Failed to ${this.mode === 'create' ? 'create' : 'update'} project`;
+          }
+        } catch (e) {
+          this.error = 'An error occurred';
+          console.error(e);
+        }
+      },
+      async deleteProject() {
+        if (!this.confirmDelete) return;
+        if (!confirm('Are you sure you want to delete this project? This will delete all associated issues.')) return;
+        
+        try {
+          const res = await fetch(`/api/projects/${this.projectForm.id}`, {
+            method: 'DELETE'
+          });
+          
+          if (res.status === 204 || res.ok) {
+            this.open = false;
+            window.location.reload();
+          } else {
+            const result = await res.json();
+            this.error = result.error || 'Failed to delete project';
+          }
+        } catch (e) {
+          this.error = 'An error occurred';
+          console.error(e);
+        }
+      },
+      activateProject() {
+        window.location.href = `/?project_id=${this.projectForm.id}`;
+      }
+    }));
+  });
+</script>
 
 <style>
   .projects-grid {
@@ -221,8 +298,92 @@ const projectId = Astro.url.searchParams.get('project_id');
   }
 
   .error-msg {
-    color: var(--accent-color);
+    color: #e74c3c;
     margin-top: 0.5rem;
     font-size: 0.9rem;
+  }
+
+  .modal-actions-wrapper {
+      padding: 1.5rem;
+      border-top: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background-color: var(--bg-color);
+      border-bottom-left-radius: 8px;
+      border-bottom-right-radius: 8px;
+  }
+
+  .right-actions {
+      display: flex;
+      gap: 1rem;
+  }
+
+  .activate-top-btn {
+      position: absolute;
+      top: 1rem;
+      right: 1.5rem;
+      padding: 0.4rem 0.6rem;
+      font-size: 0.9rem;
+  }
+
+  .danger-zone {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      padding: 0.5rem;
+      background: rgba(231, 76, 60, 0.05);
+      border-radius: 6px;
+  }
+
+  .btn-small {
+      padding: 0.4rem 0.8rem;
+      font-size: 0.9rem;
+  }
+
+  /* Toggle Switch */
+  .toggle-switch {
+    position: relative;
+    display: inline-block;
+    width: 40px;
+    height: 20px;
+  }
+
+  .toggle-switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+
+  .slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: #ccc;
+    transition: .4s;
+    border-radius: 20px;
+  }
+
+  .slider:before {
+    position: absolute;
+    content: "";
+    height: 14px;
+    width: 14px;
+    left: 3px;
+    bottom: 3px;
+    background-color: white;
+    transition: .4s;
+    border-radius: 50%;
+  }
+
+  input:checked + .slider {
+    background-color: #e74c3c;
+  }
+
+  input:checked + .slider:before {
+    transform: translateX(20px);
   }
 </style>

@@ -1,4 +1,4 @@
-import { db, Project, eq } from 'astro:db';
+import { db, Project, Issue, Log, Report, eq, inArray } from 'astro:db';
 
 export const GET = async ({ params }) => {
   const { id } = params;
@@ -97,10 +97,31 @@ export const DELETE = async ({ params }) => {
   }
 
   try {
-    const result = await db.delete(Project).where(eq(Project.id, id));
+    // Get all issues for this project to delete their related logs and reports
+    const projectIssues = await db
+      .select({ id: Issue.id })
+      .from(Issue)
+      .where(eq(Issue.project_id, id));
+
+    const issueIds = projectIssues.map((issue) => issue.id);
+
+    if (issueIds.length > 0) {
+      // Delete Logs related to these issues
+      await db.delete(Log).where(inArray(Log.issue_id, issueIds));
+
+      // Delete Reports related to these issues
+      await db.delete(Report).where(inArray(Report.issue_id, issueIds));
+
+      // Delete the Issues
+      await db.delete(Issue).where(eq(Issue.project_id, id));
+    }
+
+    // Finally delete the project
+    await db.delete(Project).where(eq(Project.id, id));
 
     return new Response(null, { status: 204 });
   } catch (error) {
+    console.error('Error deleting project:', error);
     return new Response(JSON.stringify({ error: 'Failed to delete project' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

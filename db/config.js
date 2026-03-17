@@ -16,6 +16,7 @@ const Issue = defineTable({
     project_id: column.text({ references: () => Project.columns.id }),
     title: column.text(),
     description: column.text(),
+    type: column.text({ default: 'Bug' }), // Bug, Tweak, Enhancement
     priority: column.text({ optional: false }),
     status: column.text({ default: 'todo' }),
     scheduled_for: column.date({ optional: true }),

@@ -1,7 +1,8 @@
-import { db, Issue, eq } from 'astro:db';
+import { db, Issue, Log, eq } from 'astro:db';
 
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
 const VALID_STATUSES = ['todo', 'testing', 'done'];
+const VALID_TYPES = ['Bug', 'Tweak', 'Enhancement'];
 
 export const GET = async ({ params }) => {
   const { id } = params;
@@ -49,7 +50,7 @@ export const PATCH = async ({ params, request }) => {
 
   try {
     const body = await request.json();
-    const { title, description, priority, status, scheduled_for } = body;
+    const { title, description, priority, status, type, scheduled_for } = body;
 
     const existingIssue = await db
       .select()
@@ -64,10 +65,18 @@ export const PATCH = async ({ params, request }) => {
     }
 
     const updateData = {};
-    if (title !== undefined) updateData.title = title;
-    if (description !== undefined) updateData.description = description;
+    const changes = [];
+
+    if (title !== undefined && title !== existingIssue.title) {
+        updateData.title = title;
+        changes.push(`Title changed from "${existingIssue.title}" to "${title}"`);
+    }
+    if (description !== undefined && description !== existingIssue.description) {
+        updateData.description = description;
+        changes.push('Description updated');
+    }
     
-    if (priority !== undefined) {
+    if (priority !== undefined && priority !== existingIssue.priority) {
       if (!VALID_PRIORITIES.includes(priority)) {
         return new Response(
           JSON.stringify({ error: `Invalid priority. Must be one of: ${VALID_PRIORITIES.join(', ')}` }),
@@ -78,9 +87,10 @@ export const PATCH = async ({ params, request }) => {
         );
       }
       updateData.priority = priority;
+      changes.push(`Priority changed to ${priority}`);
     }
 
-    if (status !== undefined) {
+    if (status !== undefined && status !== existingIssue.status) {
       if (!VALID_STATUSES.includes(status)) {
         return new Response(
           JSON.stringify({ error: `Invalid status. Must be one of: ${VALID_STATUSES.join(', ')}` }),
@@ -91,16 +101,43 @@ export const PATCH = async ({ params, request }) => {
         );
       }
       updateData.status = status;
+      changes.push(`Status changed to ${status}`);
+    }
+
+    if (type !== undefined && type !== existingIssue.type) {
+      if (!VALID_TYPES.includes(type)) {
+        return new Response(
+          JSON.stringify({ error: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}` }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          },
+        );
+      }
+      updateData.type = type;
+      changes.push(`Type changed to ${type}`);
     }
 
     if (scheduled_for !== undefined) {
-      updateData.scheduled_for = scheduled_for ? new Date(scheduled_for) : null;
+      const newScheduledDate = scheduled_for ? new Date(scheduled_for) : null;
+      if (newScheduledDate?.getTime() !== existingIssue.scheduled_for?.getTime()) {
+          updateData.scheduled_for = newScheduledDate;
+          changes.push(`Scheduled for ${newScheduledDate ? newScheduledDate.toLocaleDateString() : 'unscheduled'}`);
+      }
     }
 
-    updateData.updated_at = new Date();
-
     if (Object.keys(updateData).length > 0) {
+      updateData.updated_at = new Date();
       await db.update(Issue).set(updateData).where(eq(Issue.id, id));
+
+      // LOG THE CHANGES
+      await db.insert(Log).values({
+        id: crypto.randomUUID(),
+        issue_id: id,
+        action: 'Updated',
+        summary: changes.join(', '),
+        created_at: new Date(),
+      });
     }
 
     const updatedIssue = await db
@@ -132,6 +169,12 @@ export const DELETE = async ({ params }) => {
   }
 
   try {
+    // Note: Log entries might be orphaned if Issue is deleted without cascading or manual log deletion.
+    // In some systems, we log the deletion of the issue against its parent project.
+    // However, Log table references issue_id.
+    
+    // For now, let's just delete the issue. 
+    // Usually, you'd delete logs first if there are foreign key constraints without CASCADE.
     await db.delete(Issue).where(eq(Issue.id, id));
 
     return new Response(null, { status: 204 });
