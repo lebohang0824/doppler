@@ -1,0 +1,30 @@
+---
+import Sidebar from '../components/Sidebar.astro';
+import '../styles/global.css';
+
+const { title } = Astro.props;
+const projectId = Astro.url.searchParams.get('project_id');
+---
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{title ? `${title} | Dangerous Doppler` : 'Dangerous Doppler'}</title>
+</head>
+<body>
+    <div class="layout">
+        <Sidebar projectId={projectId} />
+        <main class="main-content">
+            <slot />
+        </main>
+    </div>
+    <style>
+        .main-content {
+            margin-left: var(--sidebar-width);
+            width: calc(100% - var(--sidebar-width));
+            min-height: 100vh;
+        }
+    </style>
+</body>
+</html>

@@ -1,0 +1,183 @@
+---
+import { db, Issue, eq, count } from 'astro:db';
+
+const { projectId } = Astro.props;
+
+const counts = {
+  todo: 0,
+  queued: 0,
+  executing: 0,
+  testing: 0,
+  done: 0,
+};
+
+if (projectId) {
+  try {
+    const results = await db
+      .select({ status: Issue.status, count: count() })
+      .from(Issue)
+      .where(eq(Issue.project_id, projectId))
+      .groupBy(Issue.status);
+
+    results.forEach((row) => {
+      // Normalize status to lowercase just in case
+      const status = row.status.toLowerCase();
+      if (counts.hasOwnProperty(status)) {
+        counts[status] = row.count;
+      }
+    });
+  } catch (e) {
+    console.error("Error fetching counts:", e);
+  }
+}
+
+const currentPath = Astro.url.pathname;
+const projectQuery = projectId ? `?project_id=${projectId}` : '';
+---
+
+<aside class="sidebar">
+  <div class="logo">
+    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+      <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+    <h2>Doppler</h2>
+  </div>
+  
+  <nav>
+    <div class="nav-section">
+      <h3>Menu</h3>
+      <ul>
+        <li>
+          <a href={`/${projectQuery}`} class={currentPath === '/' ? 'active' : ''}>
+            <span class="icon">📊</span> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href={`/projects${projectQuery}`} class={currentPath.startsWith('/projects') ? 'active' : ''}>
+            <span class="icon">📁</span> Projects
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <h3>Issue Status</h3>
+      <ul class="status-list">
+        <li>
+          <span class="label">Todo</span>
+          <span class="counter">{counts.todo}</span>
+        </li>
+        <li>
+          <span class="label">Queued</span>
+          <span class="counter">{counts.queued}</span>
+        </li>
+        <li>
+          <span class="label">Executing</span>
+          <span class="counter">{counts.executing}</span>
+        </li>
+        <li>
+          <span class="label">Testing</span>
+          <span class="counter">{counts.testing}</span>
+        </li>
+        <li>
+          <span class="label">Done</span>
+          <span class="counter">{counts.done}</span>
+        </li>
+      </ul>
+    </div>
+  </nav>
+</aside>
+
+<style>
+  .sidebar {
+    width: var(--sidebar-width);
+    background-color: var(--sidebar-bg);
+    color: var(--sidebar-text);
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+    padding: 1.5rem;
+    position: fixed;
+    left: 0;
+    top: 0;
+  }
+
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 2rem;
+    font-size: 1.2rem;
+    font-weight: bold;
+    color: white;
+  }
+
+  .nav-section {
+    margin-bottom: 2rem;
+  }
+
+  .nav-section h3 {
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    color: #95a5a6;
+    margin-bottom: 1rem;
+    letter-spacing: 1px;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+  }
+
+  li {
+    margin-bottom: 0.5rem;
+  }
+
+  a {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    color: #bdc3c7;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+  }
+
+  a:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+    color: white;
+  }
+
+  a.active {
+    background-color: var(--primary-color);
+    color: white;
+  }
+
+  .icon {
+    margin-right: 0.75rem;
+  }
+
+  .status-list li {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    color: #bdc3c7;
+    border-radius: 4px;
+  }
+  
+  .status-list li:hover {
+     background-color: rgba(255,255,255,0.05);
+  }
+
+  .counter {
+    background-color: rgba(0, 0, 0, 0.2);
+    padding: 2px 8px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    min-width: 24px;
+    text-align: center;
+  }
+</style>

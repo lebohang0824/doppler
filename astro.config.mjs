@@ -7,5 +7,6 @@ import db from '@astrojs/db';
 
 // https://astro.build/config
 export default defineConfig({
-  integrations: [alpinejs(), db()]
+  output: 'server',
+  integrations: [alpinejs(), db()],
 });

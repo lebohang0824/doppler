@@ -1,30 +1,64 @@
 ---
+import DashboardLayout from '../layouts/DashboardLayout.astro';
+import { db, Project, eq } from 'astro:db';
 
+const projectId = Astro.url.searchParams.get('project_id');
+let project = null;
+
+if (projectId) {
+  const result = await db.select().from(Project).where(eq(Project.id, projectId));
+  project = result[0];
+}
 ---
 
-<html lang='en'>
-  <head>
-    <meta charset='utf-8' />
-    <link
-      rel='icon'
-      type='image/svg+xml'
-      href='/favicon.svg'
-    />
-    <link
-      rel='icon'
-      href='/favicon.ico'
-    />
-    <meta
-      name='viewport'
-      content='width=device-width'
-    />
-    <meta
-      name='generator'
-      content={Astro.generator}
-    />
-    <title>Astro</title>
-  </head>
-  <body>
-    <h1>Astro</h1>
-  </body>
-</html>
+<DashboardLayout title="Dashboard">
+  <div class="header">
+    <h1>Dashboard</h1>
+  </div>
+  
+  {project ? (
+    <div class="dashboard-content">
+      <h2>{project.name}</h2>
+      <p>{project.description || 'No description available.'}</p>
+      <div class="widgets">
+        <div class="widget">
+           <h3>Project Info</h3>
+           <p><strong>Directory:</strong> {project.directory}</p>
+           <p><strong>Created:</strong> {new Date(project.created_at).toLocaleDateString()}</p>
+        </div>
+      </div>
+    </div>
+  ) : (
+    <div class="empty-state">
+      <h2>Welcome to Dangerous Doppler</h2>
+      <p>Please select a project from the <a href="/projects" style="color: var(--primary-color); text-decoration: underline;">Projects</a> page to get started.</p>
+    </div>
+  )}
+</DashboardLayout>
+
+<style>
+  .widgets {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-top: 2rem;
+  }
+  
+  .widget {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  }
+  
+  .widget h3 {
+    margin-bottom: 1rem;
+    color: var(--sidebar-bg);
+  }
+  
+  .empty-state {
+    text-align: center;
+    margin-top: 4rem;
+    color: #7f8c8d;
+  }
+</style>
