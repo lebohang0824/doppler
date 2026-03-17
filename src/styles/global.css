@@ -16,7 +16,9 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial,
+    sans-serif;
   background-color: var(--bg-color);
   color: var(--text-color);
   display: flex;
@@ -96,10 +98,47 @@ button {
 
 .modal {
   background: white;
-  padding: 2rem;
   border-radius: 8px;
-  width: 400px;
-  box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+  width: 500px;
+  max-width: 90%;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.modal-header {
+  padding: 1.5rem;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.modal-header h2 {
+  font-size: 1.25rem;
+  margin: 0;
+  color: var(--sidebar-bg);
+}
+
+.modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+}
+
+.modal-section {
+  margin-bottom: 1.5rem;
+}
+
+.modal-section-title {
+  font-size: 0.9rem;
+  font-weight: bold;
+  color: #7f8c8d;
+  margin-bottom: 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid #f0f0f0;
+  padding-bottom: 0.5rem;
 }
 
 .form-group {
@@ -110,20 +149,34 @@ button {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: bold;
+  font-size: 0.9rem;
 }
 
-.form-group input, .form-group textarea {
+.form-group input,
+.form-group textarea,
+.form-group select {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.6rem;
   border: 1px solid var(--border-color);
   border-radius: 4px;
+  font-family: inherit;
+  font-size: 0.95rem;
+}
+
+.form-group textarea {
+  min-height: 100px;
+  resize: vertical;
 }
 
 .modal-actions {
+  padding: 1.5rem;
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  margin-top: 1.5rem;
+  background-color: #f9f9f9;
+  border-bottom-left-radius: 8px;
+  border-bottom-right-radius: 8px;
 }
 
 .btn-secondary {
@@ -132,4 +185,28 @@ button {
 
 .btn-secondary:hover {
   background-color: #7f8c8d;
+}
+
+.close-btn {
+  font-size: 1.5rem;
+  line-height: 1;
+  color: #95a5a6;
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s;
+}
+
+.close-btn:hover {
+  color: var(--accent-color);
+}
+
+.form-row {
+  display: flex;
+  gap: 1rem;
+}
+
+.form-row .form-group {
+  flex: 1;
 }
