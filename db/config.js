@@ -35,7 +35,22 @@ const Report = defineTable({
   },
 });
 
+const Log = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    issue_id: column.text({ references: () => Issue.columns.id }),
+    action: column.text(),
+    summary: column.text({ optional: true }),
+    created_at: column.date({ default: NOW }),
+  },
+});
+
 // https://astro.build/db/config
 export default defineDb({
-  tables: { Project, Issue, execution_reports: Report },
+  tables: {
+    Project,
+    Issue,
+    Report,
+    Log,
+  },
 });
