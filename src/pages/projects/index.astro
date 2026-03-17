@@ -40,9 +40,10 @@ const projectId = Astro.url.searchParams.get('project_id');
       <h1>Projects</h1>
       <button
         class='btn'
-        @click='open = true'
-        >Add Project</button
-      >
+        @click='open = true'>
+        <i class="fa-solid fa-plus"></i>
+        <span>Add Project</span>
+      </button>
     </div>
 
     <div class='projects-grid'>
@@ -58,26 +59,7 @@ const projectId = Astro.url.searchParams.get('project_id');
                 <h3>{project.name}</h3>
                 {project.id === projectId && (
                   <span class='check-icon'>
-                    <svg
-                      width='24'
-                      height='24'
-                      viewBox='0 0 24 24'
-                      fill='none'
-                      xmlns='http://www.w3.org/2000/svg'>
-                      <circle
-                        cx='12'
-                        cy='12'
-                        r='10'
-                        fill='#2ecc71'
-                      />
-                      <path
-                        d='M8 12L11 15L16 9'
-                        stroke='white'
-                        stroke-width='2'
-                        stroke-linecap='round'
-                        stroke-linejoin='round'
-                      />
-                    </svg>
+                    <i class="fa-solid fa-circle-check" style="color: #2ecc71; font-size: 1.25rem;"></i>
                   </span>
                 )}
               </div>
@@ -86,7 +68,7 @@ const projectId = Astro.url.searchParams.get('project_id');
                 <span
                   class='directory'
                   title={project.directory}>
-                  📂 {project.directory}
+                  <i class="fa-solid fa-folder-open"></i> {project.directory}
                 </span>
               </div>
             </a>
@@ -108,9 +90,9 @@ const projectId = Astro.url.searchParams.get('project_id');
           <h2>Add New Project</h2>
           <button
             @click='open = false'
-            class='close-btn'
-            >&times;</button
-          >
+            class='close-btn'>
+            <i class="fa-solid fa-xmark"></i>
+          </button>
         </div>
         <form @submit.prevent='submit($event)'>
           <div class='modal-body'>
@@ -154,14 +136,16 @@ const projectId = Astro.url.searchParams.get('project_id');
             <button
               type='button'
               class='btn btn-secondary'
-              @click='open = false'
-              >Cancel</button
-            >
+              @click='open = false'>
+              <i class="fa-solid fa-xmark"></i>
+              <span>Cancel</span>
+            </button>
             <button
               type='submit'
-              class='btn'
-              >Create Project</button
-            >
+              class='btn'>
+              <i class="fa-solid fa-floppy-disk"></i>
+              <span>Create Project</span>
+            </button>
           </div>
         </form>
       </div>

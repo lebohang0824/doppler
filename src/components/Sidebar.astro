@@ -37,11 +37,7 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
 
 <aside class="sidebar">
   <div class="logo">
-    <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M2 17L12 22L22 17" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-      <path d="M2 12L12 17L22 12" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-    </svg>
+    <i class="fa-solid fa-satellite-dish fa-xl"></i>
     <h2>Doppler</h2>
   </div>
   
@@ -51,12 +47,12 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
       <ul>
         <li>
           <a href={`/${projectQuery}`} class={currentPath === '/' ? 'active' : ''}>
-            <span class="icon">📊</span> Dashboard
+            <i class="fa-solid fa-gauge-high icon"></i> Dashboard
           </a>
         </li>
         <li>
           <a href={`/projects${projectQuery}`} class={currentPath.startsWith('/projects') ? 'active' : ''}>
-            <span class="icon">📁</span> Projects
+            <i class="fa-solid fa-folder-tree icon"></i> Projects
           </a>
         </li>
       </ul>
@@ -67,31 +63,46 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
       <ul class="status-list">
         <li>
           <a href={`/issues?status=todo${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label">Todo</span>
+            <span class="label-group">
+                <i class="fa-solid fa-list-check icon"></i>
+                <span class="label">Todo</span>
+            </span>
             <span class="counter">{counts.todo}</span>
           </a>
         </li>
         <li>
           <a href={`/issues?status=queued${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label">Queued</span>
+            <span class="label-group">
+                <i class="fa-solid fa-clock icon"></i>
+                <span class="label">Queued</span>
+            </span>
             <span class="counter">{counts.queued}</span>
           </a>
         </li>
         <li>
           <a href={`/issues?status=executing${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label">Executing</span>
+            <span class="label-group">
+                <i class="fa-solid fa-play icon"></i>
+                <span class="label">Executing</span>
+            </span>
             <span class="counter">{counts.executing}</span>
           </a>
         </li>
         <li>
           <a href={`/issues?status=testing${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label">Testing</span>
+            <span class="label-group">
+                <i class="fa-solid fa-flask icon"></i>
+                <span class="label">Testing</span>
+            </span>
             <span class="counter">{counts.testing}</span>
           </a>
         </li>
         <li>
           <a href={`/issues?status=done${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label">Done</span>
+            <span class="label-group">
+                <i class="fa-solid fa-circle-check icon"></i>
+                <span class="label">Done</span>
+            </span>
             <span class="counter">{counts.done}</span>
           </a>
         </li>
@@ -103,15 +114,14 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
 <style>
   .sidebar {
     width: var(--sidebar-width);
+    flex-shrink: 0;
     background-color: var(--sidebar-bg);
     color: var(--sidebar-text);
     display: flex;
     flex-direction: column;
     height: 100vh;
     padding: 1.5rem;
-    position: fixed;
-    left: 0;
-    top: 0;
+    overflow-y: auto;
   }
 
   .logo {
@@ -169,6 +179,17 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
   }
 
   .icon {
+    margin-right: 0.75rem;
+    width: 20px;
+    text-align: center;
+  }
+
+  .label-group {
+    display: flex;
+    align-items: center;
+  }
+
+  .label-group .icon {
     margin-right: 0.75rem;
   }
 

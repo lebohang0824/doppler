@@ -11,6 +11,7 @@ const projectId = Astro.url.searchParams.get('project_id');
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{title ? `${title} | Dangerous Doppler` : 'Dangerous Doppler'}</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
 </head>
 <body>
     <div class="layout">
@@ -19,12 +20,5 @@ const projectId = Astro.url.searchParams.get('project_id');
             <slot />
         </main>
     </div>
-    <style>
-        .main-content {
-            margin-left: var(--sidebar-width);
-            width: calc(100% - var(--sidebar-width));
-            min-height: 100vh;
-        }
-    </style>
 </body>
 </html>
