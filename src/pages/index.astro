@@ -342,7 +342,10 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       switchProject(project, reload = true) {
         this.activeProject = project;
         if (reload) {
-          window.location.href = `/?project_id=${project.id}`;
+          window.notify('Switching to ' + project.name, 'info', 'fa-layer-group');
+          setTimeout(() => {
+            window.location.href = `/?project_id=${project.id}`;
+          }, 500);
         } else {
           this.fetchLogs();
         }
@@ -385,6 +388,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           });
 
           if (res.ok) {
+            window.notify('Issue created successfully', 'success', 'fa-circle-check');
             this.modals.addIssue = false;
             this.issueForm = {
               title: '',
@@ -394,13 +398,14 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
               status: 'todo',
             };
             this.fetchLogs();
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 1000);
           } else {
-            alert('Failed to create issue');
+            const data = await res.json();
+            window.notify(data.error || 'Failed to create issue', 'error', 'fa-circle-exclamation');
           }
         } catch (e) {
           console.error('Error creating issue', e);
-          alert('Error creating issue');
+          window.notify('An error occurred', 'error', 'fa-circle-exclamation');
         } finally {
           this.submitting = false;
         }

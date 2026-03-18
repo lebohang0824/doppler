@@ -21,7 +21,7 @@ const project = projectResult[0];
 const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
 ---
 
-<DashboardLayout title={title}>
+<DashboardLayout title={title} projectId={issue.project_id}>
   <div x-data={`issueDetail({ id: '${id}', projectId: '${issue.project_id}', initialStatus: '${issue.status}' })`}>
     <div class="header">
         <div class="title-section">
@@ -31,6 +31,19 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
             <h1>{issue.title}</h1>
         </div>
         <div class="header-actions">
+            <!-- Testing State Actions -->
+            <template x-if="status === 'testing'">
+                <div class="action-group">
+                    <button @click="modals.approve = true" class="btn btn-success">
+                        <i class="fa-solid fa-check"></i> Approve
+                    </button>
+                    <button @click="modals.reject = true" class="btn btn-danger">
+                        <i class="fa-solid fa-xmark"></i> Reject
+                    </button>
+                </div>
+            </template>
+
+            <!-- Execution Actions -->
             <template x-if="status === 'todo' || status === 'queued'">
                 <button 
                     @click="executeIssue()" 
@@ -56,7 +69,7 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
                 <div class="card details-card">
                     <div class="card-header">
                         <h2>Issue Details</h2>
-                        <span class={`status-badge ${issue.status}`} x-text="status"></span>
+                        <span class="status-badge" :class="status" x-text="status"></span>
                     </div>
                     <div class="card-body">
                         <div class="detail-section">
@@ -121,6 +134,9 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
                         <template x-if="loadingLogs">
                             <div class="loading-state">Loading logs...</div>
                         </template>
+                        <template x-if="!loadingLogs && logs.length === 0">
+                            <div class="empty-state-small">No history found.</div>
+                        </template>
                         <template x-for="log in logs" :key="log.id">
                             <div class="log-item">
                                 <div class="log-icon">
@@ -140,6 +156,54 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
             </div>
         </div>
     </div>
+
+    <!-- Approve Modal -->
+    <div class='modal-overlay' x-show='modals.approve' style='display: none;' x-transition.opacity>
+      <div class='modal' @click.away='modals.approve = false'>
+        <div class='modal-header'>
+          <h2>Approve & Commit</h2>
+          <button @click='modals.approve = false' class='close-btn'><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form @submit.prevent='approveIssue()'>
+          <div class='modal-body'>
+            <div class='form-group'>
+              <label for='approveMessage'>Commit Message</label>
+              <textarea id='approveMessage' x-model='approvalMessage' required placeholder='Describe what was fixed...'></textarea>
+            </div>
+          </div>
+          <div class='modal-actions'>
+            <button type='button' @click='modals.approve = false' class='btn btn-secondary'>Cancel</button>
+            <button type='submit' class='btn btn-success' :disabled='submitting'>
+              <i class="fa-solid fa-check"></i> Approve
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- Reject Modal -->
+    <div class='modal-overlay' x-show='modals.reject' style='display: none;' x-transition.opacity>
+      <div class='modal' @click.away='modals.reject = false'>
+        <div class='modal-header'>
+          <h2>Reject Changes</h2>
+          <button @click='modals.reject = false' class='close-btn'><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form @submit.prevent='rejectIssue()'>
+          <div class='modal-body'>
+            <div class='form-group'>
+              <label for='rejectReason'>Rejection Reason</label>
+              <textarea id='rejectReason' x-model='rejectionReason' required placeholder='Why are these changes being rejected?'></textarea>
+            </div>
+          </div>
+          <div class='modal-actions'>
+            <button type='button' @click='modals.reject = false' class='btn btn-secondary'>Cancel</button>
+            <button type='submit' class='btn btn-danger' :disabled='submitting'>
+              <i class="fa-solid fa-xmark"></i> Reject
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   </div>
 </DashboardLayout>
 
@@ -151,10 +215,18 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
       status: initialStatus || '',
       isGlobalRunning: false,
       isExecuting: false,
+      submitting: false,
       logs: [],
       reports: [],
       loadingLogs: true,
       loadingReports: true,
+      
+      modals: {
+        approve: false,
+        reject: false
+      },
+      approvalMessage: '',
+      rejectionReason: '',
       
       async init() {
         await this.fetchStatus();
@@ -176,6 +248,11 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
             const res = await fetch(`/api/issues/${this.id}`);
             if (res.ok) {
                 const data = await res.json();
+                if (this.status === 'executing' && data.status === 'testing') {
+                    window.notify('Execution completed! Move to testing.', 'success', 'fa-circle-check');
+                } else if (this.status === 'queued' && data.status === 'executing') {
+                    window.notify('Execution started!', 'info', 'fa-play');
+                }
                 this.status = data.status;
             }
             
@@ -220,15 +297,62 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
             if (res.ok) {
                 const data = await res.json();
                 this.status = data.status;
+                window.notify(this.status === 'queued' ? 'Task added to queue' : 'Execution started', 'info', this.status === 'queued' ? 'fa-clock' : 'fa-play');
                 this.fetchLogs();
             } else {
-                alert('Failed to start execution');
+                window.notify('Failed to start execution', 'error', 'fa-circle-exclamation');
             }
         } catch (e) {
             console.error('Execution error', e);
-            alert('An error occurred');
+            window.notify('An error occurred', 'error', 'fa-circle-exclamation');
         } finally {
             this.isExecuting = false;
+        }
+      },
+
+      async approveIssue() {
+        this.submitting = true;
+        try {
+            const res = await fetch(`/api/issues/${this.id}/approve`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ message: this.approvalMessage })
+            });
+            if (res.ok) {
+                window.notify('Issue approved and committed', 'success', 'fa-circle-check');
+                this.modals.approve = false;
+                this.approvalMessage = '';
+                await this.fetchStatus();
+                await this.fetchLogs();
+            } else {
+                const data = await res.json();
+                window.notify(data.error || 'Approval failed', 'error', 'fa-circle-exclamation');
+            }
+        } finally {
+            this.submitting = false;
+        }
+      },
+
+      async rejectIssue() {
+        this.submitting = true;
+        try {
+            const res = await fetch(`/api/issues/${this.id}/reject`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ reason: this.rejectionReason })
+            });
+            if (res.ok) {
+                window.notify('Issue rejected and reverted', 'warning', 'fa-circle-xmark');
+                this.modals.reject = false;
+                this.rejectionReason = '';
+                await this.fetchStatus();
+                await this.fetchLogs();
+            } else {
+                const data = await res.json();
+                window.notify(data.error || 'Rejection failed', 'error', 'fa-circle-exclamation');
+            }
+        } finally {
+            this.submitting = false;
         }
       }
     }));
@@ -252,6 +376,17 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
   .title-section h1 {
       margin: 0;
       font-size: 1.5rem;
+  }
+
+  .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+  }
+
+  .action-group {
+      display: flex;
+      gap: 0.75rem;
   }
 
   .status-running {
@@ -300,6 +435,107 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
       margin-bottom: 0.25rem;
   }
 
+  .type-badge {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      text-transform: uppercase;
+      font-weight: bold;
+      letter-spacing: 0.5px;
+  }
+
+  .type-badge.bug { background: #fee2e2; color: #ef4444; }
+  .type-badge.tweak { background: #fef3c7; color: #d97706; }
+  .type-badge.enhancement { background: #dcfce7; color: #10b981; }
+
+  .status-badge {
+      padding: 0.25rem 0.75rem;
+      border-radius: 12px;
+      font-size: 0.8rem;
+      text-transform: capitalize;
+      font-weight: 600;
+  }
+  
+  .status-badge.todo { background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); }
+  .status-badge.queued { background: #f39c12; color: white; }
+  .status-badge.executing { background: #3498db; color: white; }
+  .status-badge.testing { background: #9b59b6; color: white; }
+  .status-badge.done { background: #2ecc71; color: white; }
+
+  .priority {
+      font-weight: 600;
+      text-transform: capitalize;
+  }
+  
+  .priority.high { color: #e74c3c; }
+  .priority.critical { color: #c0392b; }
+  .priority.medium { color: #f39c12; }
+  .priority.low { color: #2ecc71; }
+
+  .refresh-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--accent-color);
+    padding: 0.25rem;
+    border-radius: 4px;
+  }
+
+  .refresh-btn:hover {
+    background-color: var(--bg-color);
+    color: var(--primary-color);
+  }
+
+  .logs-list {
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .log-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f9f9f9;
+  }
+
+  .log-item:last-child {
+    border-bottom: none;
+  }
+
+  .log-icon {
+    color: var(--primary-color);
+    margin-top: 0.25rem;
+  }
+
+  .log-content {
+    flex: 1;
+  }
+
+  .log-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .log-action {
+    font-weight: bold;
+    color: var(--text-color);
+  }
+
+  .log-date {
+    color: var(--accent-color);
+    font-size: 0.75rem;
+  }
+
+  .log-summary {
+    color: var(--text-color);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    opacity: 0.9;
+  }
+
   .reports-list {
       padding: 0;
   }
@@ -331,6 +567,13 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
       font-size: 0.9rem;
       color: var(--text-color);
       border: 1px solid var(--border-color);
+  }
+
+  .loading-state,
+  .empty-state-small {
+    padding: 2rem;
+    text-align: center;
+    color: var(--accent-color);
   }
 
   @media (max-width: 768px) {

@@ -191,14 +191,17 @@ const projectId = Astro.url.searchParams.get('project_id');
           });
           
           if (res.ok) {
+            window.notify(this.mode === 'create' ? 'Project created' : 'Project updated', 'success', 'fa-circle-check');
             this.open = false;
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 1000);
           } else {
             const result = await res.json();
             this.error = result.error || `Failed to ${this.mode === 'create' ? 'create' : 'update'} project`;
+            window.notify(this.error, 'error', 'fa-circle-exclamation');
           }
         } catch (e) {
           this.error = 'An error occurred';
+          window.notify(this.error, 'error', 'fa-circle-exclamation');
           console.error(e);
         }
       },
@@ -212,19 +215,25 @@ const projectId = Astro.url.searchParams.get('project_id');
           });
           
           if (res.status === 204 || res.ok) {
+            window.notify('Project deleted', 'success', 'fa-trash-can');
             this.open = false;
-            window.location.reload();
+            setTimeout(() => window.location.reload(), 1000);
           } else {
             const result = await res.json();
             this.error = result.error || 'Failed to delete project';
+            window.notify(this.error, 'error', 'fa-circle-exclamation');
           }
         } catch (e) {
           this.error = 'An error occurred';
+          window.notify(this.error, 'error', 'fa-circle-exclamation');
           console.error(e);
         }
       },
       activateProject() {
-        window.location.href = `/?project_id=${this.projectForm.id}`;
+        window.notify('Project activated: ' + this.projectForm.name, 'info', 'fa-bolt');
+        setTimeout(() => {
+            window.location.href = `/?project_id=${this.projectForm.id}`;
+        }, 500);
       }
     }));
   });

@@ -1,5 +1,8 @@
 import { db, Issue, Project, Log, Report, eq } from 'astro:db';
-import { runGeminiRequest, isGeminiRunning } from '../../../lib/gemini-service.js';
+import {
+  runGeminiRequest,
+  isGeminiRunning,
+} from '../../../../lib/gemini-service.js';
 
 export const POST = async ({ params }) => {
   const { id } = params;
@@ -19,7 +22,11 @@ export const POST = async ({ params }) => {
       });
     }
 
-    const project = await db.select().from(Project).where(eq(Project.id, issue.project_id)).get();
+    const project = await db
+      .select()
+      .from(Project)
+      .where(eq(Project.id, issue.project_id))
+      .get();
     if (!project) {
       return new Response(JSON.stringify({ error: 'Project not found' }), {
         status: 404,
@@ -31,26 +38,34 @@ export const POST = async ({ params }) => {
     const targetStatus = currentRunning ? 'queued' : 'executing';
 
     // Update issue status
-    await db.update(Issue).set({ status: targetStatus, updated_at: new Date() }).where(eq(Issue.id, id));
+    await db
+      .update(Issue)
+      .set({ status: targetStatus, updated_at: new Date() })
+      .where(eq(Issue.id, id));
 
     // Log the change
     await db.insert(Log).values({
       id: crypto.randomUUID(),
       issue_id: id,
       action: 'Execution Start',
-      summary: currentRunning ? 'Issue added to Gemini CLI queue' : 'Gemini CLI execution started',
+      summary: currentRunning
+        ? 'Issue added to Gemini CLI queue'
+        : 'Gemini CLI execution started',
       created_at: new Date(),
     });
 
     // Start background process
     // args: [command_name, "issue title and description"]
     const args = ['fix', `"${issue.title}: ${issue.description}"`];
-    
+
     // We don't await the promise here, we want the API to return quickly
     runGeminiRequest(args, project.directory, {
       onStart: async () => {
         // Update database to 'executing' when it actually starts
-        await db.update(Issue).set({ status: 'executing', updated_at: new Date() }).where(eq(Issue.id, id));
+        await db
+          .update(Issue)
+          .set({ status: 'executing', updated_at: new Date() })
+          .where(eq(Issue.id, id));
         await db.insert(Log).values({
           id: crypto.randomUUID(),
           issue_id: id,
@@ -58,7 +73,7 @@ export const POST = async ({ params }) => {
           summary: 'Gemini CLI is now processing this issue',
           created_at: new Date(),
         });
-      }
+      },
     })
       .then(async (result) => {
         // Save result as Report
@@ -72,7 +87,10 @@ export const POST = async ({ params }) => {
         });
 
         // Update issue status to testing
-        await db.update(Issue).set({ status: 'testing', updated_at: new Date() }).where(eq(Issue.id, id));
+        await db
+          .update(Issue)
+          .set({ status: 'testing', updated_at: new Date() })
+          .where(eq(Issue.id, id));
 
         // Log the completion
         await db.insert(Log).values({
@@ -85,7 +103,7 @@ export const POST = async ({ params }) => {
       })
       .catch(async (error) => {
         console.error(`Gemini execution failed for issue ${id}:`, error);
-        
+
         // Log the failure
         await db.insert(Log).values({
           id: crypto.randomUUID(),
@@ -96,7 +114,10 @@ export const POST = async ({ params }) => {
         });
 
         // Move back to todo or something?
-        await db.update(Issue).set({ status: 'todo', updated_at: new Date() }).where(eq(Issue.id, id));
+        await db
+          .update(Issue)
+          .set({ status: 'todo', updated_at: new Date() })
+          .where(eq(Issue.id, id));
       });
 
     return new Response(JSON.stringify({ status: targetStatus }), {
@@ -105,9 +126,12 @@ export const POST = async ({ params }) => {
     });
   } catch (error) {
     console.error(error);
-    return new Response(JSON.stringify({ error: 'Failed to start execution' }), {
-      status: 500,
-      headers: { 'Content-Type': 'application/json' },
-    });
+    return new Response(
+      JSON.stringify({ error: 'Failed to start execution' }),
+      {
+        status: 500,
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
   }
 };

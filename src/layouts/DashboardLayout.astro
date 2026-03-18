@@ -2,8 +2,8 @@
 import Sidebar from '../components/Sidebar.astro';
 import '../styles/global.css';
 
-const { title } = Astro.props;
-const projectId = Astro.url.searchParams.get('project_id');
+const { title, projectId: projectIdProp } = Astro.props;
+const projectId = projectIdProp || Astro.url.searchParams.get('project_id');
 ---
 <!DOCTYPE html>
 <html lang="en">
@@ -20,5 +20,87 @@ const projectId = Astro.url.searchParams.get('project_id');
             <slot />
         </main>
     </div>
+
+    <!-- Toast Container -->
+    <div 
+        x-data="{ 
+            toasts: [],
+            add(e) {
+                const id = Date.now();
+                this.toasts.push({
+                    id,
+                    message: e.detail.message,
+                    type: e.detail.type || 'info',
+                    icon: e.detail.icon || 'fa-circle-info'
+                });
+                setTimeout(() => {
+                    this.toasts = this.toasts.filter(t => t.id !== id);
+                }, 5000);
+            }
+        }" 
+        @toast.window="add($event)"
+        class="toast-container">
+        <template x-for="toast in toasts" :key="toast.id">
+            <div 
+                class="toast" 
+                :class="toast.type"
+                x-transition:enter="toast-enter"
+                x-transition:leave="toast-leave">
+                <i class="fa-solid" :class="toast.icon"></i>
+                <span x-text="toast.message"></span>
+            </div>
+        </template>
+    </div>
+
+    <style is:global>
+        .toast-container {
+            position: fixed;
+            bottom: 2rem;
+            right: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.75rem;
+            z-index: 9999;
+        }
+
+        .toast {
+            background: white;
+            color: var(--text-color);
+            padding: 1rem 1.5rem;
+            border-radius: 8px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            min-width: 250px;
+            border-left: 4px solid var(--primary-color);
+            font-weight: 500;
+        }
+
+        .toast.success { border-left-color: #2ecc71; }
+        .toast.error { border-left-color: #e74c3c; }
+        .toast.warning { border-left-color: #f1c40f; }
+        .toast.info { border-left-color: var(--primary-color); }
+
+        .toast-enter {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        .toast-leave {
+            transform: translateX(100%);
+            opacity: 0;
+        }
+        .toast {
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+    </style>
+
+    <script is:inline>
+        window.notify = (message, type = 'info', icon = 'fa-circle-info') => {
+            window.dispatchEvent(new CustomEvent('toast', { 
+                detail: { message, type, icon } 
+            }));
+        };
+    </script>
 </body>
 </html>
