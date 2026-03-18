@@ -214,6 +214,25 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
         </form>
       </div>
     </div>
+
+    <!-- Delete Modal -->
+    <div class='modal-overlay' x-show='modals.delete' style='display: none;' x-transition.opacity>
+        <div class='modal' @click.away='modals.delete = false'>
+            <div class='modal-header'>
+                <h2>Delete Issue</h2>
+                <button @click='modals.delete = false' class='close-btn'><i class="fa-solid fa-xmark"></i></button>
+            </div>
+            <div class='modal-body'>
+                <p>Are you sure you want to delete this issue? This action cannot be undone.</p>
+            </div>
+            <div class='modal-actions'>
+                <button type='button' @click='modals.delete = false' class='btn btn-secondary'>Cancel</button>
+                <button type='button' @click='confirmDelete' class='btn btn-danger' :disabled='submitting'>
+                    <i class="fa-solid fa-trash"></i> Delete
+                </button>
+            </div>
+        </div>
+    </div>
   </div>
 </DashboardLayout>
 
@@ -233,7 +252,8 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
       
       modals: {
         approve: false,
-        reject: false
+        reject: false,
+        delete: false
       },
       approvalMessage: '',
       rejectionReason: '',
@@ -366,9 +386,12 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
         }
       },
 
-      async deleteIssue() {
-        if (!confirm('Are you sure you want to delete this issue? This action cannot be undone.')) return;
-        
+      deleteIssue() {
+        this.modals.delete = true;
+      },
+
+      async confirmDelete() {
+        this.submitting = true;
         try {
             const res = await fetch(`/api/issues/${this.id}`, { method: 'DELETE' });
             if (res.ok) {
@@ -382,6 +405,9 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
         } catch (e) {
             console.error('Delete error', e);
             window.notify('An error occurred', 'error', 'fa-circle-exclamation');
+        } finally {
+            this.submitting = false;
+            this.modals.delete = false;
         }
       }
     }));

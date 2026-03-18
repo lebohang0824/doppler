@@ -1,4 +1,4 @@
-import { db, Issue, Log, eq } from 'astro:db';
+import { db, Issue, Log, Report, eq } from 'astro:db';
 
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
 const VALID_STATUSES = ['todo', 'queued', 'executing', 'testing', 'done'];
@@ -169,16 +169,16 @@ export const DELETE = async ({ params }) => {
   }
 
   try {
-    // Note: Log entries might be orphaned if Issue is deleted without cascading or manual log deletion.
-    // In some systems, we log the deletion of the issue against its parent project.
-    // However, Log table references issue_id.
+    // Delete associated records first due to foreign key constraints
+    await db.delete(Log).where(eq(Log.issue_id, id));
+    await db.delete(Report).where(eq(Report.issue_id, id));
     
-    // For now, let's just delete the issue. 
-    // Usually, you'd delete logs first if there are foreign key constraints without CASCADE.
-    await db.delete(Issue).where(eq(Issue.id, id));
+    // Now delete the issue itself
+    const result = await db.delete(Issue).where(eq(Issue.id, id));
 
     return new Response(null, { status: 204 });
   } catch (error) {
+    console.error('Delete error:', error);
     return new Response(JSON.stringify({ error: 'Failed to delete issue' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },
