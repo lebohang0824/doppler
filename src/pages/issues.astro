@@ -24,8 +24,8 @@ if (projectId) {
 const title = project ? `${status ? status.charAt(0).toUpperCase() + status.slice(1) : 'All'} Issues - ${project.name}` : 'Issues';
 ---
 
-<DashboardLayout title={title}>
-  <div x-data={`issuePage({ projectId: '${projectId}', status: '${status}' })`}>
+<DashboardLayout title={title} projectId={projectId}>
+  <div x-data={`issuePage({ projectId: ${JSON.stringify(projectId)}, status: ${JSON.stringify(status)} })`}>
     <div class="header">
         <h1>{title}</h1>
         <div class="header-actions">
@@ -155,6 +155,7 @@ const title = project ? `${status ? status.charAt(0).toUpperCase() + status.slic
           });
           if (res.ok) {
             window.notify('Issue created successfully', 'success', 'fa-circle-check');
+            this.showModal = false;
             setTimeout(() => window.location.reload(), 1000);
           } else {
             const data = await res.json();

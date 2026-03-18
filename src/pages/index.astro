@@ -5,7 +5,9 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 const currentProjectId = Astro.url.searchParams.get('project_id');
 ---
 
-<DashboardLayout title='Dashboard' projectId={currentProjectId}>
+<DashboardLayout
+  title='Dashboard'
+  projectId={currentProjectId}>
   <div x-data='dashboard()'>
     <!-- Header -->
     <div class='header'>
@@ -15,11 +17,11 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         <button
           @click='modals.switchProject = true'
           class='btn btn-secondary project-btn'>
-          <i class="fa-solid fa-layer-group"></i>
+          <i class='fa-solid fa-layer-group'></i>
           <span x-text="activeProject ? activeProject.name : 'Select Project'"
             >Select Project</span
           >
-          <i class="fa-solid fa-chevron-down fa-xs"></i>
+          <i class='fa-solid fa-chevron-down fa-xs'></i>
         </button>
 
         <!-- Add Issue Button -->
@@ -27,7 +29,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           x-show='activeProject'
           @click='modals.addIssue = true'
           class='btn'>
-          <i class="fa-solid fa-plus"></i>
+          <i class='fa-solid fa-plus'></i>
           <span>Add Issue</span>
         </button>
       </div>
@@ -47,7 +49,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
               @click='fetchLogs()'
               class='refresh-btn'
               title='Refresh Logs'>
-              <i class="fa-solid fa-rotate-right"></i>
+              <i class='fa-solid fa-rotate-right'></i>
             </button>
           </div>
           <div class='logs-list'>
@@ -62,7 +64,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
               :key='log.id'>
               <div class='log-item'>
                 <div class='log-icon'>
-                  <i class="fa-solid fa-circle-info"></i>
+                  <i class='fa-solid fa-circle-info'></i>
                 </div>
                 <div class='log-content'>
                   <div class='log-header'>
@@ -79,9 +81,12 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
                     class='log-summary'
                     x-text='log.summary'
                   ></div>
-                  <div
-                    class='log-issue'>
-                    Issue: <a :href="'/issues/' + log.issue_id" class="issue-link" x-text="log.issue_title"></a>
+                  <div class='log-issue'>
+                    Issue: <a
+                      :href="'/issues/' + log.issue_id"
+                      class='issue-link'
+                      x-text='log.issue_title'
+                    ></a>
                   </div>
                 </div>
               </div>
@@ -123,7 +128,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
               <a
                 :href="'/projects?project_id=' + activeProject.id"
                 class='btn btn-secondary'>
-                <i class="fa-solid fa-gear"></i> Manage Project
+                <i class='fa-solid fa-gear'></i> Manage Project
               </a>
             </div>
           </div>
@@ -161,7 +166,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           <button
             @click='modals.switchProject = false'
             class='close-btn'>
-            <i class="fa-solid fa-xmark"></i>
+            <i class='fa-solid fa-xmark'></i>
           </button>
         </div>
         <div class='modal-body'>
@@ -189,7 +194,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
                 <a
                   href='/projects'
                   class='btn btn-small'>
-                  <i class="fa-solid fa-plus"></i>
+                  <i class='fa-solid fa-plus'></i>
                   <span>Create New Project</span>
                 </a>
               </div>
@@ -213,7 +218,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           <button
             @click='modals.addIssue = false'
             class='close-btn'>
-            <i class="fa-solid fa-xmark"></i>
+            <i class='fa-solid fa-xmark'></i>
           </button>
         </div>
         <form @submit.prevent='submitIssue'>
@@ -273,15 +278,22 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
               type='button'
               @click='modals.addIssue = false'
               class='btn btn-secondary'>
-              <i class="fa-solid fa-xmark"></i>
+              <i class='fa-solid fa-xmark'></i>
               <span>Cancel</span>
             </button>
             <button
               type='submit'
               class='btn'
               :disabled='submitting'>
-              <i class="fa-solid fa-floppy-disk" x-show="!submitting"></i>
-              <i class="fa-solid fa-spinner fa-spin" x-show="submitting" style="display: none;"></i>
+              <i
+                class='fa-solid fa-floppy-disk'
+                x-show='!submitting'
+              ></i>
+              <i
+                class='fa-solid fa-spinner fa-spin'
+                x-show='submitting'
+                style='display: none;'
+              ></i>
               <span x-text="submitting ? 'Saving...' : 'Create Issue'"
                 >Create Issue</span
               >
@@ -342,7 +354,11 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       switchProject(project, reload = true) {
         this.activeProject = project;
         if (reload) {
-          window.notify('Switching to ' + project.name, 'info', 'fa-layer-group');
+          window.notify(
+            'Switching to ' + project.name,
+            'info',
+            'fa-layer-group',
+          );
           setTimeout(() => {
             window.location.href = `/?project_id=${project.id}`;
           }, 500);
@@ -388,7 +404,11 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           });
 
           if (res.ok) {
-            window.notify('Issue created successfully', 'success', 'fa-circle-check');
+            window.notify(
+              'Issue created successfully',
+              'success',
+              'fa-circle-check',
+            );
             this.modals.addIssue = false;
             this.issueForm = {
               title: '',
@@ -401,7 +421,11 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
             setTimeout(() => window.location.reload(), 1000);
           } else {
             const data = await res.json();
-            window.notify(data.error || 'Failed to create issue', 'error', 'fa-circle-exclamation');
+            window.notify(
+              data.error || 'Failed to create issue',
+              'error',
+              'fa-circle-exclamation',
+            );
           }
         } catch (e) {
           console.error('Error creating issue', e);
@@ -625,6 +649,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
     cursor: pointer;
     display: flex;
     flex-direction: column;
+    color: var(--text-color);
   }
 
   .project-option:hover {
@@ -634,14 +659,17 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
   }
 
   .project-option.active {
-    border-color: var(--primary-color);
-    background-color: var(--bg-color);
+    border-color: var(--accent-color); /* Use accent color for border */
+    background-color: var(
+      --primary-color
+    ); /* Use primary color for background */
+    color: white; /* Text color for active state */
     opacity: 1;
+    border-width: 2px; /* Make border thicker */
   }
 
   .project-name {
     font-weight: bold;
-    color: var(--text-color);
   }
 
   .project-dir {
