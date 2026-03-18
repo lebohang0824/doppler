@@ -1,4 +1,4 @@
-import { db, Issue, Project, Log, eq } from 'astro:db';
+import { db, Issue, Project, Log, eq, and, desc } from 'astro:db';
 
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
 const VALID_STATUSES = ['todo', 'queued', 'executing', 'testing', 'done'];
@@ -7,17 +7,26 @@ const VALID_TYPES = ['Bug', 'Tweak', 'Enhancement'];
 export const GET = async ({ url }) => {
   try {
     const projectId = url.searchParams.get('project_id');
-    let issues;
-    if (projectId) {
-      issues = await db.select().from(Issue).where(eq(Issue.project_id, projectId));
-    } else {
-      issues = await db.select().from(Issue);
+    const status = url.searchParams.get('status');
+
+    let query = db.select().from(Issue);
+
+    if (projectId && status) {
+      query = query.where(and(eq(Issue.project_id, projectId), eq(Issue.status, status)));
+    } else if (projectId) {
+      query = query.where(eq(Issue.project_id, projectId));
+    } else if (status) {
+      query = query.where(eq(Issue.status, status));
     }
+
+    const issues = await query.orderBy(desc(Issue.created_at));
+
     return new Response(JSON.stringify(issues), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
+    console.error(error);
     return new Response(JSON.stringify({ error: 'Failed to fetch issues' }), {
       status: 500,
       headers: { 'Content-Type': 'application/json' },

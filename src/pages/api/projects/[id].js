@@ -1,4 +1,5 @@
 import { db, Project, Issue, Log, Report, eq, inArray } from 'astro:db';
+import { initializeWithFirstCommit } from '../../../lib/git-service.js';
 
 export const GET = async ({ params }) => {
   const { id } = params;
@@ -21,6 +22,12 @@ export const GET = async ({ params }) => {
         status: 404,
         headers: { 'Content-Type': 'application/json' },
       });
+    }
+
+    try {
+      await initializeWithFirstCommit(project.directory);
+    } catch (e) {
+      console.error(`Failed to initialize git in ${project.directory}:`, e);
     }
 
     return new Response(JSON.stringify(project), {
@@ -67,6 +74,14 @@ export const PATCH = async ({ params, request }) => {
 
     if (Object.keys(updateData).length > 0) {
       await db.update(Project).set(updateData).where(eq(Project.id, id));
+
+      if (directory !== undefined) {
+        try {
+          await initializeWithFirstCommit(directory);
+        } catch (e) {
+          console.error(`Failed to initialize git in ${directory}:`, e);
+        }
+      }
     }
 
     const updatedProject = await db

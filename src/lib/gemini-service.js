@@ -54,7 +54,9 @@ async function processQueue() {
   if (modelId) {
     // Assuming the Gemini CLI uses a '--model' flag.
     // This might need to be configurable if the flag differs.
-    commandArgs = ['--model', modelId, ...args];
+    commandArgs = ['--model', modelId, '--yolo', ...args];
+  } else {
+    commandArgs = ['--yolo', ...args];
   }
 
   if (onStart) {

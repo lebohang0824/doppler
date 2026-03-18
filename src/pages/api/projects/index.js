@@ -1,4 +1,5 @@
 import { db, Project, eq } from 'astro:db';
+import { initializeWithFirstCommit } from '../../../lib/git-service.js';
 
 export const GET = async () => {
   try {
@@ -38,6 +39,13 @@ export const POST = async ({ request }) => {
       directory,
       created_at: new Date(),
     });
+
+    try {
+      await initializeWithFirstCommit(directory);
+    } catch (e) {
+      console.error(`Failed to initialize git in ${directory}:`, e);
+      // We still return 201 because the project was created in the database
+    }
 
     const newProject = await db
       .select()

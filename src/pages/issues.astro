@@ -1,133 +1,208 @@
 ---
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { db, Issue, Project, eq, and, desc } from 'astro:db';
+import { db, Project, eq } from 'astro:db';
 
 const projectId = Astro.url.searchParams.get('project_id');
 const status = Astro.url.searchParams.get('status');
 
-let issues = [];
 let project = null;
 
 if (projectId) {
-  const projectResult = await db.select().from(Project).where(eq(Project.id, projectId));
+  const projectResult = await db
+    .select()
+    .from(Project)
+    .where(eq(Project.id, projectId));
   project = projectResult[0];
-
-  let query = db.select().from(Issue).where(
-      status 
-      ? and(eq(Issue.project_id, projectId), eq(Issue.status, status))
-      : eq(Issue.project_id, projectId)
-  ).orderBy(desc(Issue.created_at));
-  
-  issues = await query;
 }
 
-const title = project ? `${status ? status.charAt(0).toUpperCase() + status.slice(1) : 'All'} Issues - ${project.name}` : 'Issues';
+const title = project
+  ? `${status ? status.charAt(0).toUpperCase() + status.slice(1) : 'All'} Issues - ${project.name}`
+  : 'Issues';
 ---
 
-<DashboardLayout title={title} projectId={projectId}>
-  <div x-data="issuePage({ projectId: projectId, status: status })">
-    <div class="header">
-        <h1>{title}</h1>
-        <div class="header-actions">
-            {status === 'todo' && projectId && (
-                <button @click="showModal = true" class="btn">
-                    <i class="fa-solid fa-plus"></i> Add Issue
-                </button>
-            )}
-            {projectId && (
-                <a href={`/?project_id=${projectId}`} class="btn btn-secondary">
-                    <i class="fa-solid fa-arrow-left"></i> Dashboard
-                </a>
-            )}
-        </div>
+<DashboardLayout
+  title={title}
+  projectId={projectId}>
+  <div
+    x-data={`issuePage({ projectId: ${JSON.stringify(projectId)}, status: ${JSON.stringify(status)} })`}>
+    <div class='header'>
+      <h1>{title}</h1>
+      <div class='header-actions'>
+        {
+          status === 'todo' && projectId && (
+            <button
+              @click='showModal = true'
+              class='btn'>
+              <i class='fa-solid fa-plus' /> Add Issue
+            </button>
+          )
+        }
+        {
+          projectId && (
+            <a
+              href={`/?project_id=${projectId}`}
+              class='btn btn-secondary'>
+              <i class='fa-solid fa-arrow-left' /> Dashboard
+            </a>
+          )
+        }
+      </div>
     </div>
 
-    {!projectId ? (
-        <div class="empty-state">
-            <p>Please select a project to view issues.</p>
-            <a href="/projects" class="btn">View Projects</a>
+    <div x-cloak>
+      <template x-if='!projectId'>
+        <div class='empty-state'>
+          <p>Please select a project to view issues.</p>
+          <a
+            href='/projects'
+            class='btn'>
+            View Projects
+          </a>
         </div>
-    ) : (
-        <div class="issues-list">
-            {issues.length === 0 ? (
-                <p>No issues found with status "{status || 'any'}".</p>
-            ) : (
-                issues.map(issue => (
-                    <a href={`/issues/${issue.id}`} class="issue-card-link">
-                        <div class="issue-card">
-                            <div class="issue-header">
-                                <div class="title-group">
-                                    <span class={`type-badge ${issue.type.toLowerCase()}`}>{issue.type}</span>
-                                    <h3>{issue.title}</h3>
-                                </div>
-                                <span class={`status-badge ${issue.status}`}>{issue.status}</span>
-                            </div>
-                            <p>{issue.description}</p>
-                            <div class="issue-meta">
-                                <span class={`priority ${issue.priority}`}>
-                                    <i class="fa-solid fa-circle fa-xs"></i> {issue.priority}
-                                </span>
-                                <span>
-                                    <i class="fa-solid fa-calendar-days"></i> {new Date(issue.created_at).toLocaleDateString()}
-                                </span>
-                            </div>
-                        </div>
-                    </a>
-                ))
-            )}
+      </template>
+
+      <template x-if='projectId'>
+        <div class='issues-list-container'>
+          <template x-if='loading'>
+            <div class='loading-state'>Loading issues...</div>
+          </template>
+
+          <template x-if='!loading && issues.length === 0'>
+            <div class='empty-state-small'>
+              No issues found with status <span x-text="status || 'any'"
+              ></span>.
+            </div>
+          </template>
+
+          <div class='issues-list'>
+            <template
+              x-for='issue in issues'
+              :key='issue.id'>
+              <a
+                :href="'/issues/' + issue.id"
+                class='issue-card-link'>
+                <div class='issue-card'>
+                  <div class='issue-header'>
+                    <div class='title-group'>
+                      <span
+                        class='type-badge'
+                        :class='issue.type.toLowerCase()'
+                        x-text='issue.type'
+                      ></span>
+                      <h3 x-text='issue.title'></h3>
+                    </div>
+                    <span
+                      class='status-badge'
+                      :class='issue.status'
+                      x-text='issue.status'
+                    ></span>
+                  </div>
+                  <p x-text='issue.description'></p>
+                  <div class='issue-meta'>
+                    <span
+                      class='priority'
+                      :class='issue.priority'>
+                      <i class='fa-solid fa-circle fa-xs'></i>
+                      <span x-text='issue.priority'></span>
+                    </span>
+                    <span>
+                      <i class='fa-solid fa-calendar-days'></i>
+                      <span
+                        x-text='new Date(issue.created_at).toLocaleDateString()'
+                      ></span>
+                    </span>
+                  </div>
+                </div>
+              </a>
+            </template>
+          </div>
         </div>
-    )}
+      </template>
+    </div>
 
     <!-- Add Issue Modal -->
-    <template x-if="showModal">
-        <div class='modal-overlay' x-transition.opacity>
-            <div class='modal' @click.away='showModal = false'>
-                <div class='modal-header'>
-                    <h2>Add New Issue</h2>
-                    <button @click='showModal = false' class='close-btn'>
-                        <i class="fa-solid fa-xmark"></i>
-                    </button>
+    <template x-if='showModal'>
+      <div
+        class='modal-overlay'
+        x-transition.opacity>
+        <div
+          class='modal'
+          @click.away='showModal = false'>
+          <div class='modal-header'>
+            <h2>Add New Issue</h2>
+            <button
+              @click='showModal = false'
+              class='close-btn'>
+              <i class='fa-solid fa-xmark'></i>
+            </button>
+          </div>
+          <form @submit.prevent='submitIssue'>
+            <div class='modal-body'>
+              <div class='form-group'>
+                <label for='title'>Title</label>
+                <input
+                  type='text'
+                  id='title'
+                  x-model='issueForm.title'
+                  required
+                  placeholder='Issue title...'
+                />
+              </div>
+              <div class='form-group'>
+                <label for='description'>Description</label>
+                <textarea
+                  id='description'
+                  x-model='issueForm.description'
+                  required
+                  placeholder='Details...'
+                ></textarea>
+              </div>
+              <div class='form-row'>
+                <div class='form-group'>
+                  <label for='type'>Type</label>
+                  <select
+                    id='type'
+                    x-model='issueForm.type'>
+                    <option value='Bug'>Bug</option>
+                    <option value='Tweak'>Tweak</option>
+                    <option value='Enhancement'>Enhancement</option>
+                  </select>
                 </div>
-                <form @submit.prevent='submitIssue'>
-                    <div class='modal-body'>
-                        <div class='form-group'>
-                            <label for='title'>Title</label>
-                            <input type='text' id='title' x-model='issueForm.title' required placeholder='Issue title...' />
-                        </div>
-                        <div class='form-group'>
-                            <label for='description'>Description</label>
-                            <textarea id='description' x-model='issueForm.description' required placeholder='Details...'></textarea>
-                        </div>
-                        <div class='form-row'>
-                            <div class='form-group'>
-                                <label for='type'>Type</label>
-                                <select id='type' x-model='issueForm.type'>
-                                    <option value='Bug'>Bug</option>
-                                    <option value='Tweak'>Tweak</option>
-                                    <option value='Enhancement'>Enhancement</option>
-                                </select>
-                            </div>
-                            <div class='form-group'>
-                                <label for='priority'>Priority</label>
-                                <select id='priority' x-model='issueForm.priority'>
-                                    <option value='low'>Low</option>
-                                    <option value='medium'>Medium</option>
-                                    <option value='high'>High</option>
-                                    <option value='critical'>Critical</option>
-                                </select>
-                            </div>
-                        </div>
-                    </div>
-                    <div class='modal-actions'>
-                        <button type='button' @click='showModal = false' class='btn btn-secondary'>Cancel</button>
-                        <button type='submit' class='btn' :disabled='submitting'>
-                            <i class="fa-solid fa-spinner fa-spin" x-show="submitting" style="display: none;"></i>
-                            <span x-text="submitting ? 'Saving...' : 'Create Issue'"></span>
-                        </button>
-                    </div>
-                </form>
+                <div class='form-group'>
+                  <label for='priority'>Priority</label>
+                  <select
+                    id='priority'
+                    x-model='issueForm.priority'>
+                    <option value='low'>Low</option>
+                    <option value='medium'>Medium</option>
+                    <option value='high'>High</option>
+                    <option value='critical'>Critical</option>
+                  </select>
+                </div>
+              </div>
             </div>
+            <div class='modal-actions'>
+              <button
+                type='button'
+                @click='showModal = false'
+                class='btn btn-secondary'
+                >Cancel</button
+              >
+              <button
+                type='submit'
+                class='btn'
+                :disabled='submitting'>
+                <i
+                  class='fa-solid fa-spinner fa-spin'
+                  x-show='submitting'
+                  style='display: none;'
+                ></i>
+                <span x-text="submitting ? 'Saving...' : 'Create Issue'"></span>
+              </button>
+            </div>
+          </form>
         </div>
+      </div>
     </template>
   </div>
 </DashboardLayout>
@@ -135,31 +210,79 @@ const title = project ? `${status ? status.charAt(0).toUpperCase() + status.slic
 <script is:inline>
   document.addEventListener('alpine:init', () => {
     Alpine.data('issuePage', ({ projectId, status }) => ({
+      projectId,
+      status,
       showModal: false,
       submitting: false,
+      loading: false,
+      issues: [],
       issueForm: {
         project_id: projectId,
         title: '',
         description: '',
         type: 'Bug',
         priority: 'medium',
-        status: status || 'todo'
+        status: status || 'todo',
       },
+
+      async init() {
+        if (this.projectId) {
+          await this.fetchIssues();
+        }
+      },
+
+      async fetchIssues() {
+        this.loading = true;
+        try {
+          const url = new URL('/api/issues', window.location.origin);
+          url.searchParams.append('project_id', this.projectId);
+          if (this.status) {
+            url.searchParams.append('status', this.status);
+          }
+          const res = await fetch(url);
+          if (res.ok) {
+            this.issues = await res.json();
+          } else {
+            console.error('Failed to fetch issues');
+          }
+        } catch (e) {
+          console.error(e);
+        } finally {
+          this.loading = false;
+        }
+      },
+
       async submitIssue() {
         this.submitting = true;
         try {
           const res = await fetch('/api/issues', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(this.issueForm)
+            body: JSON.stringify(this.issueForm),
           });
           if (res.ok) {
-            window.notify('Issue created successfully', 'success', 'fa-circle-check');
+            window.notify(
+              'Issue created successfully',
+              'success',
+              'fa-circle-check',
+            );
             this.showModal = false;
-            setTimeout(() => window.location.reload(), 1000);
+            await this.fetchIssues();
+            this.issueForm = {
+              project_id: this.projectId,
+              title: '',
+              description: '',
+              type: 'Bug',
+              priority: 'medium',
+              status: this.status || 'todo',
+            };
           } else {
             const data = await res.json();
-            window.notify(data.error || 'Failed to create issue', 'error', 'fa-circle-exclamation');
+            window.notify(
+              data.error || 'Failed to create issue',
+              'error',
+              'fa-circle-exclamation',
+            );
           }
         } catch (e) {
           console.error(e);
@@ -167,126 +290,171 @@ const title = project ? `${status ? status.charAt(0).toUpperCase() + status.slic
         } finally {
           this.submitting = false;
         }
-      }
+      },
     }));
   });
 </script>
 
 <style>
+  [x-cloak] {
+    display: none !important;
+  }
+
   .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 2rem;
   }
-  
+
   .header-actions {
-      display: flex;
-      gap: 1rem;
+    display: flex;
+    gap: 1rem;
   }
-  
+
   .issues-list {
-      display: flex;
-      flex-direction: column;
-      gap: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
   }
 
   .issue-card-link {
-      text-decoration: none;
-      color: inherit;
-      display: block;
-      transition: transform 0.2s;
+    text-decoration: none;
+    color: inherit;
+    display: block;
+    transition: transform 0.2s;
   }
 
   .issue-card-link:hover {
-      transform: translateX(4px);
+    transform: translateX(4px);
   }
-  
+
   .issue-card {
-      background: white;
-      padding: 1.5rem;
-      border-radius: 8px;
-      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-      border-left: 4px solid var(--border-color);
+    background: white;
+    padding: 1.5rem;
+    border-radius: 8px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    border-left: 4px solid var(--border-color);
   }
-  
+
   .issue-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 0.75rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
   }
 
   .title-group {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
   }
-  
+
   .issue-header h3 {
-      margin: 0;
-      color: var(--text-color);
-      font-size: 1.1rem;
+    margin: 0;
+    color: var(--text-color);
+    font-size: 1.1rem;
   }
 
   .type-badge {
-      font-size: 0.7rem;
-      padding: 0.15rem 0.5rem;
-      border-radius: 4px;
-      text-transform: uppercase;
-      font-weight: bold;
-      letter-spacing: 0.5px;
+    font-size: 0.7rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 4px;
+    text-transform: uppercase;
+    font-weight: bold;
+    letter-spacing: 0.5px;
   }
 
-  .type-badge.bug { background: #fee2e2; color: #ef4444; }
-  .type-badge.tweak { background: #fef3c7; color: #d97706; }
-  .type-badge.enhancement { background: #dcfce7; color: #10b981; }
-  
-  .status-badge {
-      padding: 0.25rem 0.75rem;
-      border-radius: 12px;
-      font-size: 0.8rem;
-      text-transform: capitalize;
-      font-weight: 600;
+  .type-badge.bug {
+    background: #fee2e2;
+    color: #ef4444;
   }
-  
-  .status-badge.todo { background: var(--bg-color); color: var(--text-color); border: 1px solid var(--border-color); }
-  .status-badge.queued { background: #f39c12; color: white; }
-  .status-badge.executing { background: #3498db; color: white; }
-  .status-badge.testing { background: #9b59b6; color: white; }
-  .status-badge.done { background: #2ecc71; color: white; }
-  
+  .type-badge.tweak {
+    background: #fef3c7;
+    color: #d97706;
+  }
+  .type-badge.enhancement {
+    background: #dcfce7;
+    color: #10b981;
+  }
+
+  .status-badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-size: 0.8rem;
+    text-transform: capitalize;
+    font-weight: 600;
+  }
+
+  .status-badge.todo {
+    background: var(--bg-color);
+    color: var(--text-color);
+    border: 1px solid var(--border-color);
+  }
+  .status-badge.queued {
+    background: #f39c12;
+    color: white;
+  }
+  .status-badge.executing {
+    background: #3498db;
+    color: white;
+  }
+  .status-badge.testing {
+    background: #9b59b6;
+    color: white;
+  }
+  .status-badge.done {
+    background: #2ecc71;
+    color: white;
+  }
+
   .issue-meta {
-      display: flex;
-      gap: 1.5rem;
-      margin-top: 1rem;
-      font-size: 0.85rem;
-      color: var(--accent-color);
+    display: flex;
+    gap: 1.5rem;
+    margin-top: 1rem;
+    font-size: 0.85rem;
+    color: var(--accent-color);
   }
 
   .issue-meta span {
-      display: flex;
-      align-items: center;
-      gap: 0.4rem;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
   }
-  
+
   .priority {
-      font-weight: 600;
-      text-transform: capitalize;
+    font-weight: 600;
+    text-transform: capitalize;
   }
-  
-  .priority.high { color: #e74c3c; }
-  .priority.critical { color: #c0392b; }
-  .priority.medium { color: #f39c12; }
-  .priority.low { color: #2ecc71; }
-  
-  .empty-state {
+
+  .priority.high {
+    color: #e74c3c;
+  }
+  .priority.critical {
+    color: #c0392b;
+  }
+  .priority.medium {
+    color: #f39c12;
+  }
+  .priority.low {
+    color: #2ecc71;
+  }
+
+  .empty-state,
+  .empty-state-small {
     text-align: center;
     margin-top: 4rem;
     color: var(--accent-color);
   }
-  
+
   .empty-state p {
-      margin-bottom: 1.5rem;
+    margin-bottom: 1.5rem;
+  }
+
+  .loading-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--accent-color);
+    font-style: italic;
   }
 </style>
