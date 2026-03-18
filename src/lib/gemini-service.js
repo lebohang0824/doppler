@@ -25,11 +25,20 @@ export function isGeminiRunning() {
  * @param {string[]} args - The arguments for the gemini command.
  * @param {string} cwd - The working directory to run the command in.
  * @param {Object} options - Extra options (onStart).
+ * @param {string | null} modelId - The ID of the Gemini model to use (e.g., 'gemini-1.0-pro').
  * @returns {Promise<string>} - Resolves with stdout or rejects with error.
  */
-export function runGeminiRequest(args, cwd, options = {}) {
+export function runGeminiRequest(args, cwd, options = {}, modelId = null) {
+  // Added modelId parameter
   return new Promise((resolve, reject) => {
-    queue.push({ args, cwd, resolve, reject, onStart: options.onStart });
+    queue.push({
+      args,
+      cwd,
+      resolve,
+      reject,
+      onStart: options.onStart,
+      modelId,
+    }); // Store modelId
     processQueue();
   });
 }
@@ -38,7 +47,15 @@ async function processQueue() {
   if (isRunning || queue.length === 0) return;
 
   isRunning = true;
-  const { args, cwd, resolve, reject, onStart } = queue.shift();
+  const { args, cwd, resolve, reject, onStart, modelId } = queue.shift(); // Destructure modelId
+
+  // Prepend model argument if modelId is provided
+  let commandArgs = args;
+  if (modelId) {
+    // Assuming the Gemini CLI uses a '--model' flag.
+    // This might need to be configurable if the flag differs.
+    commandArgs = ['--model', modelId, ...args];
+  }
 
   if (onStart) {
     try {
@@ -49,7 +66,8 @@ async function processQueue() {
   }
 
   try {
-    const result = await executeGemini(args, cwd);
+    // Pass modified commandArgs to executeGemini
+    const result = await executeGemini(commandArgs, cwd);
     resolve(result);
   } catch (error) {
     reject(error);
@@ -64,7 +82,7 @@ function executeGemini(args, cwd) {
     const child = spawn(geminiCommand, args, {
       cwd,
       shell: true,
-      env: { ...process.env, CI: 'true' } // helping some CLIs detect non-interactive mode
+      env: { ...process.env, CI: 'true' }, // helping some CLIs detect non-interactive mode
     });
 
     let stdout = '';
@@ -86,7 +104,11 @@ function executeGemini(args, cwd) {
       if (code === 0) {
         resolve(stdout);
       } else {
-        reject(new Error(`Gemini process exited with code ${code}\nStderr: ${stderr}\nStdout: ${stdout}`));
+        reject(
+          new Error(
+            `Gemini process exited with code ${code}\nStderr: ${stderr}\nStdout: ${stdout}`,
+          ),
+        );
       }
     });
 

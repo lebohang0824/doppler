@@ -25,7 +25,7 @@ const title = project ? `${status ? status.charAt(0).toUpperCase() + status.slic
 ---
 
 <DashboardLayout title={title} projectId={projectId}>
-  <div x-data={`issuePage({ projectId: ${JSON.stringify(projectId)}, status: ${JSON.stringify(status)} })`}>
+  <div x-data="issuePage({ projectId: projectId, status: status })">
     <div class="header">
         <h1>{title}</h1>
         <div class="header-actions">

@@ -32,12 +32,42 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           <i class='fa-solid fa-plus'></i>
           <span>Add Issue</span>
         </button>
+
+        <!-- Gemini Model Selector -->
+        <div
+          class='model-selector'
+          x-data='geminiModelSelector()'>
+          <button
+            @click='toggleModelDropdown'
+            class='btn btn-secondary model-btn'>
+            <i class='fa-solid fa-robot'></i>
+            <span x-text='selectedModel.name'>Gemini Pro</span>
+            <i class='fa-solid fa-chevron-down fa-xs'></i>
+          </button>
+          <div
+            class='model-options'
+            x-show='dropdownOpen'
+            @click.away='dropdownOpen = false'
+            x-transition>
+            <template
+              x-for='model in models'
+              :key='model.id'>
+              <button
+                class='model-option'
+                :class="{ 'active': selectedModel.id === model.id }"
+                @click='selectModel(model)'>
+                <span x-text='model.name'></span>
+              </button>
+            </template>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- Main Content -->
     <div
       class='dashboard-content'
+      x-cloak
       x-show='activeProject'
       x-transition>
       <div class='cards-grid'>
@@ -139,6 +169,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
     <!-- Empty State -->
     <div
       class='empty-dashboard'
+      x-cloak
       x-show='!activeProject'
       x-transition>
       <div class='empty-content'>
@@ -324,6 +355,20 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         status: 'todo',
       },
       submitting: false,
+      // Gemini Model Selector State
+      geminiModels: [
+        { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
+        { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro' },
+        { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
+        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+        { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Lite' },
+        // Add more models here if needed
+      ],
+      selectedGeminiModel: {
+        id: 'gemini-3.1-pro-preview',
+        name: 'Gemini 3.1 Pro',
+      }, // Default model
 
       async init() {
         await this.fetchProjects();
@@ -340,15 +385,23 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         }
       },
 
-      async fetchProjects() {
-        try {
-          const res = await fetch('/api/projects');
-          if (res.ok) {
-            this.projects = await res.json();
+      fetchProjects() {
+        return new Promise(async (resolve) => {
+          try {
+            const res = await fetch('/api/projects');
+            if (res.ok) {
+              this.projects = await res.json();
+              resolve();
+            } else {
+              this.projects = [];
+              resolve();
+            }
+          } catch (e) {
+            console.error('Failed to fetch projects', e);
+            this.projects = [];
+            resolve();
           }
-        } catch (e) {
-          console.error('Failed to fetch projects', e);
-        }
+        });
       },
 
       switchProject(project, reload = true) {
@@ -395,6 +448,9 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           const payload = {
             ...this.issueForm,
             project_id: this.activeProject.id,
+            // Include the selected Gemini model if relevant for issue creation,
+            // though typically this is for generation tasks.
+            // gemini_model: this.selectedGeminiModel.id
           };
 
           const res = await fetch('/api/issues', {
@@ -435,10 +491,48 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         }
       },
     }));
+
+    // Alpine.js component for Gemini Model Selector
+    Alpine.data('geminiModelSelector', () => ({
+      dropdownOpen: false,
+      models: [
+        { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
+        { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro' },
+        { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
+        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
+        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
+        { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Lite' },
+        // Add more models here if needed
+      ],
+      selectedModel: {
+        id: 'gemini-3.1-pro-preview',
+        name: 'Gemini 3.1 Pro',
+      }, // Default model
+
+      toggleModelDropdown() {
+        this.dropdownOpen = !this.dropdownOpen;
+      },
+
+      selectModel(model) {
+        this.selectedModel = model;
+        this.dropdownOpen = false;
+        // Optionally, broadcast this selection or use it elsewhere
+        // e.g., Alpine.store('activeGeminiModel', model);
+        window.notify(
+          `Selected Gemini model: ${model.name}`,
+          'info',
+          'fa-robot',
+        );
+      },
+    }));
   });
 </script>
 
 <style>
+  [x-cloak] {
+    display: none !important;
+  }
+
   .header-actions {
     display: flex;
     gap: 1rem;
@@ -448,6 +542,68 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
     display: flex;
     align-items: center;
     gap: 0.5rem;
+  }
+
+  /* Model Selector Styles */
+  .model-selector {
+    position: relative;
+    display: inline-block;
+  }
+
+  .model-btn {
+    /* Inherits btn and btn-secondary styles */
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .model-options {
+    position: absolute;
+    top: 100%; /* Position below the button */
+    right: 0; /* Align to the right edge of the selector container */
+    z-index: 100; /* Increased z-index to ensure it's on top */
+    background-color: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    min-width: 220px; /* Slightly increased min-width for better readability */
+    margin-top: 0.5rem; /* Space between button and dropdown */
+    flex-shrink: 0;
+  }
+
+  .model-option {
+    width: 100%; /* Takes full width of its container */
+    text-align: left;
+    padding: 0.75rem 1rem; /* Consistent padding */
+    background: white; /* Explicit background */
+    border: none; /* Remove default border if any */
+    border-radius: 6px; /* Consistent border radius */
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    transition:
+      background-color 0.2s ease,
+      color 0.2s ease; /* Smooth transitions */
+    opacity: 0.8; /* Slightly dimmed by default, like project-option */
+  }
+
+  .model-option:hover {
+    background-color: var(--bg-color); /* Consistent hover background */
+    border-color: var(
+      --primary-color
+    ); /* Add border on hover like project-option */
+    opacity: 1; /* Fully visible on hover */
+  }
+
+  .model-option.active {
+    background-color: var(--primary-color); /* Primary background for active */
+    color: white; /* White text for active */
+    font-weight: bold;
+    border-color: var(
+      --accent-color
+    ); /* Accent border for active, like project-option */
+    opacity: 1; /* Fully visible */
+    border-width: 2px; /* Thicker border for active, like project-option */
   }
 
   .dashboard-content {
