@@ -24,17 +24,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           <i class='fa-solid fa-chevron-down fa-xs'></i>
         </button>
 
-        <!-- Add Issue Button -->
-        <button
-          x-show='activeProject'
-          @click='modals.addIssue = true'
-          class='btn'>
-          <i class='fa-solid fa-plus'></i>
-          <span>Add Issue</span>
-        </button>
-
-        <div
-          class='model-selector'>
+        <div class='model-selector'>
           <button
             @click='toggleModelDropdown'
             class='btn btn-secondary model-btn'>
@@ -232,105 +222,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         </div>
       </div>
     </div>
-
-    <!-- Add Issue Modal -->
-    <div
-      class='modal-overlay'
-      x-show='modals.addIssue'
-      style='display: none;'
-      x-transition.opacity>
-      <div
-        class='modal'
-        @click.away='modals.addIssue = false'>
-        <div class='modal-header'>
-          <h2>Add New Issue</h2>
-          <button
-            @click='modals.addIssue = false'
-            class='close-btn'>
-            <i class='fa-solid fa-xmark'></i>
-          </button>
-        </div>
-        <form @submit.prevent='submitIssue'>
-          <div class='modal-body'>
-            <div class='modal-section'>
-              <div class='modal-section-title'>Issue Details</div>
-              <div class='form-group'>
-                <label for='title'>Title</label>
-                <input
-                  type='text'
-                  id='title'
-                  x-model='issueForm.title'
-                  required
-                  placeholder='Issue title...'
-                />
-              </div>
-              <div class='form-group'>
-                <label for='description'>Description</label>
-                <textarea
-                  id='description'
-                  x-model='issueForm.description'
-                  required
-                  placeholder='Details...'
-                ></textarea>
-              </div>
-            </div>
-
-            <div class='modal-section'>
-              <div class='modal-section-title'>Settings</div>
-              <div class='form-row'>
-                <div class='form-group'>
-                  <label for='type'>Type</label>
-                  <select
-                    id='type'
-                    x-model='issueForm.type'>
-                    <option value='Bug'>Bug</option>
-                    <option value='Tweak'>Tweak</option>
-                    <option value='Enhancement'>Enhancement</option>
-                  </select>
-                </div>
-                <div class='form-group'>
-                  <label for='priority'>Priority</label>
-                  <select
-                    id='priority'
-                    x-model='issueForm.priority'>
-                    <option value='low'>Low</option>
-                    <option value='medium'>Medium</option>
-                    <option value='high'>High</option>
-                    <option value='critical'>Critical</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-          </div>
-          <div class='modal-actions'>
-            <button
-              type='button'
-              @click='modals.addIssue = false'
-              class='btn btn-secondary'>
-              <i class='fa-solid fa-xmark'></i>
-              <span>Cancel</span>
-            </button>
-            <button
-              type='submit'
-              class='btn'
-              :disabled='submitting'>
-              <i
-                class='fa-solid fa-floppy-disk'
-                x-show='!submitting'
-              ></i>
-              <i
-                class='fa-solid fa-spinner fa-spin'
-                x-show='submitting'
-                style='display: none;'
-              ></i>
-              <span x-text="submitting ? 'Saving...' : 'Create Issue'"
-                >Create Issue</span
-              >
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
   </div>
 </DashboardLayout>
 
@@ -343,14 +234,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       loadingLogs: false,
       modals: {
         switchProject: false,
-        addIssue: false,
-      },
-      issueForm: {
-        title: '',
-        description: '',
-        type: 'Bug',
-        priority: 'medium',
-        status: 'todo',
       },
       submitting: false,
 
@@ -464,54 +347,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           this.logs = [];
         } finally {
           this.loadingLogs = false;
-        }
-      },
-
-      async submitIssue() {
-        if (!this.activeProject) return;
-        this.submitting = true;
-
-        try {
-          const payload = {
-            ...this.issueForm,
-            project_id: this.activeProject.id,
-          };
-
-          const res = await fetch('/api/issues', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-
-          if (res.ok) {
-            window.notify(
-              'Issue created successfully',
-              'success',
-              'fa-circle-check',
-            );
-            this.modals.addIssue = false;
-            this.issueForm = {
-              title: '',
-              description: '',
-              type: 'Bug',
-              priority: 'medium',
-              status: 'todo',
-            };
-            this.fetchLogs();
-            setTimeout(() => window.location.reload(), 1000);
-          } else {
-            const data = await res.json();
-            window.notify(
-              data.error || 'Failed to create issue',
-              'error',
-              'fa-circle-exclamation',
-            );
-          }
-        } catch (e) {
-          console.error('Error creating issue', e);
-          window.notify('An error occurred', 'error', 'fa-circle-exclamation');
-        } finally {
-          this.submitting = false;
         }
       },
     }));
