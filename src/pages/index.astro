@@ -33,10 +33,8 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           <span>Add Issue</span>
         </button>
 
-        <!-- Gemini Model Selector -->
         <div
-          class='model-selector'
-          x-data='geminiModelSelector()'>
+          class='model-selector'>
           <button
             @click='toggleModelDropdown'
             class='btn btn-secondary model-btn'>
@@ -355,8 +353,10 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         status: 'todo',
       },
       submitting: false,
+
       // Gemini Model Selector State
-      geminiModels: [
+      dropdownOpen: false,
+      models: [
         { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
         { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro' },
         { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
@@ -365,24 +365,51 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Lite' },
         // Add more models here if needed
       ],
-      selectedGeminiModel: {
+      selectedModel: {
         id: 'gemini-3.1-pro-preview',
         name: 'Gemini 3.1 Pro',
       }, // Default model
 
-      async init() {
-        await this.fetchProjects();
+      init() {
+        this.initModel();
+        this.initProject();
+      },
 
-        // Check URL for project_id
-        const urlParams = new URLSearchParams(window.location.search);
-        const projectId = urlParams.get('project_id');
-
-        if (projectId) {
-          const project = this.projects.find((p) => p.id === projectId);
-          if (project) {
-            this.switchProject(project, false);
-          }
+      initModel() {
+        const storedModel = localStorage.getItem('selectedGeminiModel');
+        if (storedModel) {
+          this.selectedModel = JSON.parse(storedModel);
         }
+      },
+
+      initProject() {
+        this.fetchProjects().then(() => {
+          // Check URL for project_id
+          const urlParams = new URLSearchParams(window.location.search);
+          const projectId = urlParams.get('project_id');
+
+          if (projectId) {
+            const project = this.projects.find((p) => p.id === projectId);
+            if (project) {
+              this.switchProject(project, false);
+            }
+          }
+        });
+      },
+
+      toggleModelDropdown() {
+        this.dropdownOpen = !this.dropdownOpen;
+      },
+
+      selectModel(model) {
+        this.selectedModel = model;
+        this.dropdownOpen = false;
+        localStorage.setItem('selectedGeminiModel', JSON.stringify(model));
+        window.notify(
+          `Selected Gemini model: ${model.name}`,
+          'info',
+          'fa-robot',
+        );
       },
 
       fetchProjects() {
@@ -448,9 +475,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           const payload = {
             ...this.issueForm,
             project_id: this.activeProject.id,
-            // Include the selected Gemini model if relevant for issue creation,
-            // though typically this is for generation tasks.
-            // gemini_model: this.selectedGeminiModel.id
           };
 
           const res = await fetch('/api/issues', {
@@ -489,40 +513,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         } finally {
           this.submitting = false;
         }
-      },
-    }));
-
-    // Alpine.js component for Gemini Model Selector
-    Alpine.data('geminiModelSelector', () => ({
-      dropdownOpen: false,
-      models: [
-        { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
-        { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro' },
-        { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
-        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-        { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Lite' },
-        // Add more models here if needed
-      ],
-      selectedModel: {
-        id: 'gemini-3.1-pro-preview',
-        name: 'Gemini 3.1 Pro',
-      }, // Default model
-
-      toggleModelDropdown() {
-        this.dropdownOpen = !this.dropdownOpen;
-      },
-
-      selectModel(model) {
-        this.selectedModel = model;
-        this.dropdownOpen = false;
-        // Optionally, broadcast this selection or use it elsewhere
-        // e.g., Alpine.store('activeGeminiModel', model);
-        window.notify(
-          `Selected Gemini model: ${model.name}`,
-          'info',
-          'fa-robot',
-        );
       },
     }));
   });
