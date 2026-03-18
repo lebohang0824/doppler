@@ -22,15 +22,33 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
 ---
 
 <DashboardLayout title={title} projectId={issue.project_id}>
-  <div x-data={`issueDetail({ id: '${id}', projectId: '${issue.project_id}', initialStatus: '${issue.status}' })`}>
+  <div x-data={`issueDetail({ 
+    id: '${id}', 
+    projectId: '${issue.project_id}', 
+    initialStatus: '${issue.status}',
+    initialTitle: ${JSON.stringify(issue.title)},
+    initialDescription: ${JSON.stringify(issue.description)},
+    initialType: '${issue.type}',
+    initialPriority: '${issue.priority}'
+  })`}>
     <div class="header">
         <div class="title-section">
             <a :href="'/issues?project_id=' + projectId" class="btn btn-secondary btn-small">
                 <i class="fa-solid fa-arrow-left"></i> Back
             </a>
-            <h1>{issue.title}</h1>
+            <h1 x-text="title"></h1>
         </div>
         <div class="header-actions">
+            <!-- Edit Button (Todo only) -->
+            <template x-if="status === 'todo'">
+                <button 
+                    @click="openEdit()" 
+                    class="btn btn-secondary btn-small"
+                    title="Edit Issue">
+                    <i class="fa-solid fa-pen-to-square"></i>
+                </button>
+            </template>
+
             <!-- Delete Button -->
             <template x-if="status !== 'executing'">
                 <button 
@@ -84,16 +102,16 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
                     <div class="card-body">
                         <div class="detail-section">
                             <label>Description</label>
-                            <p>{issue.description}</p>
+                            <p x-text="description"></p>
                         </div>
                         <div class="meta-grid">
                             <div class="meta-item">
                                 <label>Type</label>
-                                <span class={`type-badge ${issue.type.toLowerCase()}`}>{issue.type}</span>
+                                <span class="type-badge" :class="type.toLowerCase()" x-text="type"></span>
                             </div>
                             <div class="meta-item">
                                 <label>Priority</label>
-                                <span class={`priority ${issue.priority}`}>{issue.priority}</span>
+                                <span class="priority" :class="priority" x-text="priority"></span>
                             </div>
                             <div class="meta-item">
                                 <label>Project</label>
@@ -124,16 +142,14 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
                                 <div class="report-header">
                                     <span class="report-date" x-text="new Date(report.created_at).toLocaleString()"></span>
                                 </div>
-                                <template x-if="report.files_changed && report.files_changed.length > 0">
-                                    <div class="report-files">
-                                        <label>Files Affected</label>
-                                        <ul>
-                                            <template x-for="file in report.files_changed" :key="file">
-                                                <li x-text="file"></li>
-                                            </template>
-                                        </ul>
-                                    </div>
-                                </template>
+                                <div class="report-files" x-show="parseFiles(report).length > 0">
+                                    <label>Files Affected</label>
+                                    <ul>
+                                        <template x-for="file in parseFiles(report)" :key="file">
+                                            <li x-text="file"></li>
+                                        </template>
+                                    </ul>
+                                </div>
                                 <div class="report-details" x-text="report.details"></div>
                             </div>
                         </template>
@@ -175,6 +191,53 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
                 </div>
             </div>
         </div>
+    </div>
+
+    <!-- Edit Modal -->
+    <div class='modal-overlay' x-show='modals.edit' style='display: none;' x-transition.opacity>
+      <div class='modal' @click.away='modals.edit = false'>
+        <div class='modal-header'>
+          <h2>Edit Issue</h2>
+          <button @click='modals.edit = false' class='close-btn'><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <form @submit.prevent='updateIssue()'>
+          <div class='modal-body'>
+            <div class='form-group'>
+              <label for='editTitle'>Title</label>
+              <input type='text' id='editTitle' x-model='editForm.title' required placeholder='Issue title...' />
+            </div>
+            <div class='form-group'>
+              <label for='editDescription'>Description</label>
+              <textarea id='editDescription' x-model='editForm.description' required placeholder='Details...'></textarea>
+            </div>
+            <div class='form-row'>
+              <div class='form-group'>
+                <label for='editType'>Type</label>
+                <select id='editType' x-model='editForm.type'>
+                  <option value='Bug'>Bug</option>
+                  <option value='Tweak'>Tweak</option>
+                  <option value='Enhancement'>Enhancement</option>
+                </select>
+              </div>
+              <div class='form-group'>
+                <label for='editPriority'>Priority</label>
+                <select id='editPriority' x-model='editForm.priority'>
+                  <option value='low'>Low</option>
+                  <option value='medium'>Medium</option>
+                  <option value='high'>High</option>
+                  <option value='critical'>Critical</option>
+                </select>
+              </div>
+            </div>
+          </div>
+          <div class='modal-actions'>
+            <button type='button' @click='modals.edit = false' class='btn btn-secondary'>Cancel</button>
+            <button type='submit' class='btn btn-primary' :disabled='submitting'>
+              <i class="fa-solid fa-floppy-disk"></i> Save Changes
+            </button>
+          </div>
+        </form>
+      </div>
     </div>
 
     <!-- Approve Modal -->
@@ -248,10 +311,14 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
 
 <script is:inline>
   document.addEventListener('alpine:init', () => {
-    Alpine.data('issueDetail', ({ id, projectId, initialStatus }) => ({
+    Alpine.data('issueDetail', ({ id, projectId, initialStatus, initialTitle, initialDescription, initialType, initialPriority }) => ({
       id,
       projectId,
       status: initialStatus || '',
+      title: initialTitle,
+      description: initialDescription,
+      type: initialType,
+      priority: initialPriority,
       isGlobalRunning: false,
       isExecuting: false,
       submitting: false,
@@ -263,10 +330,17 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
       modals: {
         approve: false,
         reject: false,
-        delete: false
+        delete: false,
+        edit: false
       },
       approvalMessage: '',
       rejectionReason: '',
+      editForm: {
+        title: '',
+        description: '',
+        type: '',
+        priority: ''
+      },
       
       async init() {
         await this.fetchStatus();
@@ -294,6 +368,11 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
                     window.notify('Execution started!', 'info', 'fa-play');
                 }
                 this.status = data.status;
+                // Update other fields too in case they changed elsewhere
+                this.title = data.title;
+                this.description = data.description;
+                this.type = data.type;
+                this.priority = data.priority;
             }
             
             const globalRes = await fetch('/api/status');
@@ -303,6 +382,45 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
             }
         } catch (e) {
             console.error('Failed to fetch status', e);
+        }
+      },
+      
+      openEdit() {
+        this.editForm = {
+            title: this.title,
+            description: this.description,
+            type: this.type,
+            priority: this.priority
+        };
+        this.modals.edit = true;
+      },
+
+      async updateIssue() {
+        this.submitting = true;
+        try {
+            const res = await fetch(`/api/issues/${this.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(this.editForm)
+            });
+            if (res.ok) {
+                const updated = await res.json();
+                this.title = updated.title;
+                this.description = updated.description;
+                this.type = updated.type;
+                this.priority = updated.priority;
+                window.notify('Issue updated successfully', 'success', 'fa-circle-check');
+                this.modals.edit = false;
+                await this.fetchLogs();
+            } else {
+                const data = await res.json();
+                window.notify(data.error || 'Update failed', 'error', 'fa-circle-exclamation');
+            }
+        } catch (e) {
+            console.error('Update error', e);
+            window.notify('An error occurred', 'error', 'fa-circle-exclamation');
+        } finally {
+            this.submitting = false;
         }
       },
       
@@ -327,6 +445,17 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
             }
         } finally {
             this.loadingReports = false;
+        }
+      },
+
+      parseFiles(report) {
+        if (!report.files_changed) return [];
+        if (Array.isArray(report.files_changed)) return report.files_changed;
+        try {
+            return JSON.parse(report.files_changed);
+        } catch (e) {
+            console.error('Failed to parse files_changed', e);
+            return [];
         }
       },
       

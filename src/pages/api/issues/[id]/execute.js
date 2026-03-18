@@ -76,29 +76,40 @@ export const POST = async ({ params }) => {
       },
     })
       .then(async (result) => {
+        // Strip ANSI escape codes
+        const cleanResult = result.replace(/\x1B\[[0-9;]*[JKmsu]/g, '');
+        
         // Extract affected files from result
         const filesChanged = [];
         const filePatterns = [
-            /Successfully modified file: ([^\s\n]+)/g,
-            /Successfully created file: ([^\s\n]+)/g,
-            /Modified: ([^\s\n]+)/g,
-            /Created: ([^\s\n]+)/g,
-            /wrote ([^\s\n]+)/g,
-            /updated ([^\s\n]+)/g,
-            /deleted ([^\s\n]+)/g,
-            /Renamed ([^\s\n]+) to ([^\s\n]+)/g
+            /Successfully modified file: ([^\s\n`]+)/g,
+            /Successfully created file: ([^\s\n`]+)/g,
+            /Modified: ([^\s\n`]+)/g,
+            /Created: ([^\s\n`]+)/g,
+            /wrote ([^\s\n`]+)/g,
+            /updated ([^\s\n`]+)/g,
+            /deleted ([^\s\n`]+)/g,
+            /Renamed ([^\s\n`]+) to ([^\s\n`]+)/g,
+            /`([^`]+\.[a-z0-9]+)`/gi // Any file-like string in backticks
         ];
 
         for (const pattern of filePatterns) {
             let match;
-            while ((match = pattern.exec(result)) !== null) {
-                if (match[1]) filesChanged.push(match[1]);
-                if (match[2]) filesChanged.push(match[2]);
+            while ((match = pattern.exec(cleanResult)) !== null) {
+                if (match[1]) filesChanged.push(match[1].replace(/^`|`$/g, ''));
+                if (match[2]) filesChanged.push(match[2].replace(/^`|`$/g, ''));
             }
         }
 
-        // De-duplicate
-        const uniqueFiles = [...new Set(filesChanged)];
+        // De-duplicate and filter out obviously non-file matches
+        const uniqueFiles = [...new Set(filesChanged)].filter(f => 
+            f.includes('.') && 
+            !f.includes(' ') && 
+            f.length > 2 &&
+            !f.startsWith('http')
+        );
+
+        console.log(`Extracted ${uniqueFiles.length} files from execution result for issue ${id}`);
 
         // Save result as Report
         const reportId = crypto.randomUUID();
