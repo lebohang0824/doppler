@@ -124,6 +124,16 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
                                 <div class="report-header">
                                     <span class="report-date" x-text="new Date(report.created_at).toLocaleString()"></span>
                                 </div>
+                                <template x-if="report.files_changed && report.files_changed.length > 0">
+                                    <div class="report-files">
+                                        <label>Files Affected</label>
+                                        <ul>
+                                            <template x-for="file in report.files_changed" :key="file">
+                                                <li x-text="file"></li>
+                                            </template>
+                                        </ul>
+                                    </div>
+                                </template>
                                 <div class="report-details" x-text="report.details"></div>
                             </div>
                         </template>
@@ -611,6 +621,31 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
   .report-date {
       font-size: 0.8rem;
       color: var(--accent-color);
+  }
+
+  .report-files {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: #f1f8ff;
+      border: 1px solid #c8e1ff;
+      border-radius: 4px;
+  }
+
+  .report-files label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: bold;
+      color: #0366d6;
+      margin-bottom: 0.5rem;
+  }
+
+  .report-files ul {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #24292e;
   }
 
   .report-details {
