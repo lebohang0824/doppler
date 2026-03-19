@@ -56,7 +56,11 @@ export const POST = async ({ params }) => {
 
     // Start background process
     // args: [command_name, "issue title and description"]
-    const args = ['fix', `"${issue.title}: ${issue.description}"`];
+    let prompt = `${issue.title}: ${issue.description}`;
+    if (issue.attachments && Array.isArray(issue.attachments) && issue.attachments.length > 0) {
+      prompt += `\n\nAttachments found in .gemini/attachments/${id}/: ${issue.attachments.join(', ')}`;
+    }
+    const args = ['fix', `"${prompt}"`];
 
     // We don't await the promise here, we want the API to return quickly
     runGeminiRequest(args, project.directory, {

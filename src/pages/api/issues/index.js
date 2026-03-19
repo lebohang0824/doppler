@@ -1,4 +1,6 @@
 import { db, Issue, Project, Log, eq, and, desc } from 'astro:db';
+import fs from 'node:fs/promises';
+import path from 'node:path';
 
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
 const VALID_STATUSES = ['todo', 'queued', 'executing', 'testing', 'done'];
@@ -36,8 +38,15 @@ export const GET = async ({ url }) => {
 
 export const POST = async ({ request }) => {
   try {
-    const body = await request.json();
-    const { project_id, title, description, priority, status, type, scheduled_for } = body;
+    const formData = await request.formData();
+    const project_id = formData.get('project_id');
+    const title = formData.get('title');
+    const description = formData.get('description');
+    const priority = formData.get('priority');
+    const status = formData.get('status');
+    const type = formData.get('type');
+    const scheduled_for = formData.get('scheduled_for');
+    const files = formData.getAll('files');
 
     if (!project_id || !title || !description || !priority) {
       return new Response(
@@ -94,6 +103,23 @@ export const POST = async ({ request }) => {
     }
 
     const id = crypto.randomUUID();
+
+    // Handle file uploads
+    const attachments = [];
+    if (files && files.length > 0) {
+      const attachmentDir = path.join(project.directory, '.gemini', 'attachments', id);
+      await fs.mkdir(attachmentDir, { recursive: true });
+
+      for (const file of files) {
+        if (file instanceof File && file.name) {
+          const buffer = Buffer.from(await file.arrayBuffer());
+          const filePath = path.join(attachmentDir, file.name);
+          await fs.writeFile(filePath, buffer);
+          attachments.push(file.name);
+        }
+      }
+    }
+
     const finalStatus = status || 'todo';
     const newIssueData = {
       id,
@@ -103,6 +129,7 @@ export const POST = async ({ request }) => {
       type: type || 'Bug',
       priority,
       status: finalStatus,
+      attachments: attachments.length > 0 ? attachments : null,
       scheduled_for: scheduled_for ? new Date(scheduled_for) : null,
       created_at: new Date(),
       updated_at: new Date(),

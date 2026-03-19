@@ -29,7 +29,8 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
     initialTitle: ${JSON.stringify(issue.title)},
     initialDescription: ${JSON.stringify(issue.description)},
     initialType: '${issue.type}',
-    initialPriority: '${issue.priority}'
+    initialPriority: '${issue.priority}',
+    initialAttachments: ${JSON.stringify(issue.attachments)}
   })`}>
     <div class="header">
         <div class="title-section">
@@ -103,6 +104,17 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
                         <div class="detail-section">
                             <label>Description</label>
                             <p x-text="description"></p>
+                        </div>
+                        <div class="detail-section" x-show="attachments && attachments.length > 0">
+                            <label>Attachments</label>
+                            <ul class="attachments-list">
+                                <template x-for="file in attachments" :key="file">
+                                    <li>
+                                        <i class="fa-solid fa-file"></i>
+                                        <span x-text="file"></span>
+                                    </li>
+                                </template>
+                            </ul>
                         </div>
                         <div class="meta-grid">
                             <div class="meta-item">
@@ -311,7 +323,7 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
 
 <script is:inline>
   document.addEventListener('alpine:init', () => {
-    Alpine.data('issueDetail', ({ id, projectId, initialStatus, initialTitle, initialDescription, initialType, initialPriority }) => ({
+    Alpine.data('issueDetail', ({ id, projectId, initialStatus, initialTitle, initialDescription, initialType, initialPriority, initialAttachments }) => ({
       id,
       projectId,
       status: initialStatus || '',
@@ -319,6 +331,7 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
       description: initialDescription,
       type: initialType,
       priority: initialPriority,
+      attachments: initialAttachments || [],
       isGlobalRunning: false,
       isExecuting: false,
       submitting: false,
@@ -373,6 +386,7 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
                 this.description = data.description;
                 this.type = data.type;
                 this.priority = data.priority;
+                this.attachments = data.attachments || [];
             }
             
             const globalRes = await fetch('/api/status');
@@ -612,6 +626,30 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
       color: var(--accent-color);
       margin-bottom: 0.5rem;
       font-weight: bold;
+  }
+
+  .attachments-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      display: flex;
+      flex-wrap: wrap;
+      gap: 1rem;
+  }
+
+  .attachments-list li {
+      background: #f8f9fa;
+      padding: 0.5rem 0.75rem;
+      border-radius: 4px;
+      border: 1px solid var(--border-color);
+      font-size: 0.85rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+  }
+
+  .attachments-list li i {
+      color: var(--accent-color);
   }
 
   .meta-grid {

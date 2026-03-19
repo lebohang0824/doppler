@@ -178,6 +178,16 @@ const title = project
                   </select>
                 </div>
               </div>
+              <div class='form-group'>
+                <label for='attachments'>Attachments (Optional)</label>
+                <input
+                  type='file'
+                  id='attachments'
+                  multiple
+                  @change='handleFileUpload($event)'
+                  class='file-input'
+                />
+              </div>
             </div>
             <div class='modal-actions'>
               <button
@@ -221,6 +231,11 @@ const title = project
         type: 'Bug',
         priority: 'medium',
         status: status || 'todo',
+        files: null,
+      },
+
+      handleFileUpload(event) {
+        this.issueForm.files = event.target.files;
       },
 
       async init() {
@@ -253,10 +268,23 @@ const title = project
       async submitIssue() {
         this.submitting = true;
         try {
+          const formData = new FormData();
+          formData.append('project_id', this.issueForm.project_id);
+          formData.append('title', this.issueForm.title);
+          formData.append('description', this.issueForm.description);
+          formData.append('type', this.issueForm.type);
+          formData.append('priority', this.issueForm.priority);
+          formData.append('status', this.issueForm.status);
+          
+          if (this.issueForm.files) {
+            for (let i = 0; i < this.issueForm.files.length; i++) {
+              formData.append('files', this.issueForm.files[i]);
+            }
+          }
+
           const res = await fetch('/api/issues', {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(this.issueForm),
+            body: formData,
           });
           if (res.ok) {
             window.notify(
@@ -273,6 +301,7 @@ const title = project
               type: 'Bug',
               priority: 'medium',
               status: this.status || 'todo',
+              files: null,
             };
           } else {
             const data = await res.json();
@@ -454,5 +483,27 @@ const title = project
     padding: 2rem;
     color: var(--accent-color);
     font-style: italic;
+  }
+
+  .file-input {
+    width: 100%;
+    padding: 0.5rem 0;
+    font-size: 0.9rem;
+    color: var(--text-color);
+  }
+
+  .file-input::file-selector-button {
+    padding: 0.4rem 1rem;
+    border-radius: 4px;
+    border: 1px solid var(--border-color);
+    background: var(--bg-color);
+    color: var(--text-color);
+    cursor: pointer;
+    margin-right: 1rem;
+    transition: all 0.2s;
+  }
+
+  .file-input::file-selector-button:hover {
+    background: var(--border-color);
   }
 </style>

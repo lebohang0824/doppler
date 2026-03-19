@@ -19,6 +19,7 @@ const Issue = defineTable({
     type: column.text({ default: 'Bug' }), // Bug, Tweak, Enhancement
     priority: column.text({ optional: false }),
     status: column.text({ default: 'todo' }),
+    attachments: column.json({ optional: true }),
     scheduled_for: column.date({ optional: true }),
     created_at: column.date({ default: NOW }),
     updated_at: column.date({ default: NOW }),
