@@ -1,43 +1,69 @@
-# Astro Starter Kit: Minimal
+# AI-Powered Issue Manager
 
-```sh
-npm create astro@latest -- --template minimal
-```
+This project is a local web application designed to help developers manage software issues. It leverages Google's Gemini AI to offer automated issue resolution, integrating directly with local Git repositories to modify code, create reports, and manage changes.
 
-> 🧑‍🚀 **Seasoned astronaut?** Delete this file. Have fun!
+The application is built with Astro for both frontend and backend logic, with UI interactivity powered by Alpine.js.
 
-## 🚀 Project Structure
+## Core Workflow
 
-Inside of your Astro project, you'll see the following folders and files:
+The application follows a specific workflow for managing issues from creation to resolution:
 
-```text
-/
-├── public/
-├── src/
-│   └── pages/
-│       └── index.astro
-└── package.json
-```
+1.  **Create Issue**: An issue is created in the "To Do" state with a detailed description, priority, and an optional schedule for execution.
+2.  **AI Execution**: When triggered (manually or by schedule), the application invokes the Gemini CLI. The AI uses the issue description as a prompt to modify the codebase directly.
+3.  **Testing & Review**: After the AI finishes, it generates a report detailing the changes. The issue is automatically moved to the "Testing" status, where the user can review the AI's work.
+4.  **Approve or Reject**:
+    - **Approve**: If the user is satisfied with the changes, they can approve them. The application will then commit the changes to the Git repository, and the issue is moved to "Done".
+    - **Reject**: If the changes are not satisfactory, the user can reject them. The application uses Git to automatically revert all modifications, and the issue is moved back to "To Do" for re-evaluation.
 
-Astro looks for `.astro` or `.md` files in the `src/pages/` directory. Each page is exposed as a route based on its file name.
+## Features
 
-There's nothing special about `src/components/`, but that's where we like to put any Astro/React/Vue/Svelte/Preact components.
+- **Project Management**: Create projects linked to absolute paths of local Git repositories.
+- **Issue Management**: Full CRUD functionality for issues with status (`To Do`, `Testing`, `Done`), priority (`Low`, `Medium`, `High`, `Critical`), and scheduling.
+- **Automated AI Resolution**: Trigger Gemini AI to read issue descriptions and perform code modifications.
+- **Interactive Approval**: A UI to review AI-generated reports and approve (commit) or reject (revert) changes.
+- **History & Logging**: Keeps a log of all AI interactions and status changes for each issue.
 
-Any static assets, like images, can be placed in the `public/` directory.
+## Technology Stack
 
-## 🧞 Commands
+- **Framework**: [Astro](https://astro.build/) (SSR with the Node.js adapter)
+- **UI Interactivity**: [Alpine.js](https://alpinejs.dev/)
+- **Database**: [Astro DB](https://docs.astro.build/en/guides/database/) (SQLite-based)
+- **Git Integration**: [simple-git](https://github.com/steveukx/git-js)
+- **AI Integration**: Google's [Gemini CLI](https://ai.google.dev/docs/gemini_cli) (via Node.js `child_process`)
 
-All commands are run from the root of the project, from a terminal:
+## Prerequisites
 
-| Command                   | Action                                           |
-| :------------------------ | :----------------------------------------------- |
-| `npm install`             | Installs dependencies                            |
-| `npm run dev`             | Starts local dev server at `localhost:4321`      |
-| `npm run build`           | Build your production site to `./dist/`          |
-| `npm run preview`         | Preview your build locally, before deploying     |
-| `npm run astro ...`       | Run CLI commands like `astro add`, `astro check` |
-| `npm run astro -- --help` | Get help using the Astro CLI                     |
+Before running the application, you must have the **Gemini CLI** and **Git** installed and configured on your system. Ensure that the `gemini` command is available in your system's PATH.
 
-## 👀 Want to learn more?
+## Installation
 
-Feel free to check [our documentation](https://docs.astro.build) or jump into our [Discord server](https://astro.build/chat).
+1.  **Clone the repository:**
+
+    ```sh
+    git clone <your-repository-url>
+    cd ai-powered-issue-manager
+    ```
+
+2.  **Install dependencies:**
+    ```sh
+    npm install
+    ```
+
+## Running the Application
+
+1.  **Start the development server:**
+
+    ```sh
+    npm run dev
+    ```
+
+2.  **Access the application:**
+    Open your browser and navigate to `http://localhost:4321`.
+
+## How to Use
+
+1.  **Create a Project**: From the UI, create a new project by providing a name and the absolute file path to a local Git repository on your machine.
+2.  **Create an Issue**: Select a project and create a new issue. Provide a clear and detailed description of the task you want the AI to perform.
+3.  **Trigger AI Execution**: From the issue details page, trigger the AI execution.
+4.  **Review the Report**: Once the issue status changes to "Testing," review the report and the file changes made by the AI.
+5.  **Approve or Reject**: Based on your review, either approve the changes to commit them or reject them to revert.
