@@ -275,7 +275,7 @@ const title = project
           formData.append('type', this.issueForm.type);
           formData.append('priority', this.issueForm.priority);
           formData.append('status', this.issueForm.status);
-          
+
           if (this.issueForm.files) {
             for (let i = 0; i < this.issueForm.files.length; i++) {
               formData.append('files', this.issueForm.files[i]);
@@ -487,7 +487,7 @@ const title = project
 
   .file-input {
     width: 100%;
-    padding: 0.5rem 0;
+    padding: 0.5rem;
     font-size: 0.9rem;
     color: var(--text-color);
   }
