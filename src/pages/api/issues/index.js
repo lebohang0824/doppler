@@ -5,6 +5,7 @@ import path from 'node:path';
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
 const VALID_STATUSES = ['todo', 'queued', 'executing', 'testing', 'done'];
 const VALID_TYPES = ['Bug', 'Tweak', 'Enhancement'];
+const VALID_PROVIDERS = ['gemini', 'opencode'];
 
 export const GET = async ({ url }) => {
   try {
@@ -45,6 +46,8 @@ export const POST = async ({ request }) => {
     const priority = formData.get('priority');
     const status = formData.get('status');
     const type = formData.get('type');
+    const provider = formData.get('provider');
+    const model = formData.get('model');
     const scheduled_for = formData.get('scheduled_for');
     const files = formData.getAll('files');
 
@@ -81,6 +84,16 @@ export const POST = async ({ request }) => {
     if (type && !VALID_TYPES.includes(type)) {
       return new Response(
         JSON.stringify({ error: `Invalid type. Must be one of: ${VALID_TYPES.join(', ')}` }),
+        {
+          status: 400,
+          headers: { 'Content-Type': 'application/json' },
+        },
+      );
+    }
+
+    if (provider && !VALID_PROVIDERS.includes(provider)) {
+      return new Response(
+        JSON.stringify({ error: `Invalid provider. Must be one of: ${VALID_PROVIDERS.join(', ')}` }),
         {
           status: 400,
           headers: { 'Content-Type': 'application/json' },
@@ -129,6 +142,8 @@ export const POST = async ({ request }) => {
       type: type || 'Bug',
       priority,
       status: finalStatus,
+      provider: provider || 'gemini',
+      model: model || null,
       attachments: attachments.length > 0 ? attachments : null,
       scheduled_for: scheduled_for ? new Date(scheduled_for) : null,
       created_at: new Date(),

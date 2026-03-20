@@ -54,6 +54,11 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
             <i class="fa-solid fa-folder-tree icon"></i> Projects
           </a>
         </li>
+        <li>
+          <a href={`/settings`} class={currentPath.startsWith('/settings') ? 'active' : ''}>
+            <i class="fa-solid fa-gear icon"></i> Settings
+          </a>
+        </li>
       </ul>
     </div>
 

@@ -19,6 +19,8 @@ const Issue = defineTable({
     type: column.text({ default: 'Bug' }), // Bug, Tweak, Enhancement
     priority: column.text({ optional: false }),
     status: column.text({ default: 'todo' }),
+    provider: column.text({ default: 'gemini' }), // gemini, opencode
+    model: column.text({ optional: true }),
     attachments: column.json({ optional: true }),
     scheduled_for: column.date({ optional: true }),
     created_at: column.date({ default: NOW }),
@@ -47,6 +49,37 @@ const Log = defineTable({
   },
 });
 
+const ApiToken = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    provider: column.text({ unique: true }), // anthropic, openai, google, etc.
+    token: column.text(), // encrypted or plain
+    created_at: column.date({ default: NOW }),
+    updated_at: column.date({ default: NOW }),
+  },
+});
+
+const Model = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }), // e.g., "anthropic/claude-sonnet-4"
+    name: column.text(),
+    provider: column.text(), // e.g., "anthropic"
+    tier: column.text({ default: 'free' }), // free, paid
+    enabled: column.text({ default: 'true' }), // can be disabled
+    created_at: column.date({ default: NOW }),
+  },
+});
+
+const SelectedModel = defineTable({
+  columns: {
+    id: column.text({ primaryKey: true }),
+    provider: column.text({ default: 'gemini' }), // gemini, opencode
+    model_id: column.text(), // reference to Model.id
+    created_at: column.date({ default: NOW }),
+    updated_at: column.date({ default: NOW }),
+  },
+});
+
 // https://astro.build/db/config
 export default defineDb({
   tables: {
@@ -54,5 +87,8 @@ export default defineDb({
     Issue,
     Report,
     Log,
+    ApiToken,
+    Model,
+    SelectedModel,
   },
 });

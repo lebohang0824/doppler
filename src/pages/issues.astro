@@ -243,6 +243,25 @@ const title = project
           await this.fetchIssues();
         }
       },
+      issueForm: {
+        project_id: projectId,
+        title: '',
+        description: '',
+        type: 'Bug',
+        priority: 'medium',
+        status: status || 'todo',
+        files: null,
+      },
+
+      handleFileUpload(event) {
+        this.issueForm.files = event.target.files;
+      },
+
+      async init() {
+        if (this.projectId) {
+          await this.fetchIssues();
+        }
+      },
 
       async fetchIssues() {
         this.loading = true;

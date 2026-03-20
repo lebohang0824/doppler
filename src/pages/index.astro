@@ -24,31 +24,19 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           <i class='fa-solid fa-chevron-down fa-xs'></i>
         </button>
 
-        <div class='model-selector'>
-          <button
-            @click='toggleModelDropdown'
-            class='btn btn-secondary model-btn'>
-            <i class='fa-solid fa-robot'></i>
-            <span x-text='selectedModel.name'>Gemini Pro</span>
-            <i class='fa-solid fa-chevron-down fa-xs'></i>
-          </button>
-          <div
-            class='model-options'
-            x-show='dropdownOpen'
-            @click.away='dropdownOpen = false'
-            x-transition>
-            <template
-              x-for='model in models'
-              :key='model.id'>
-              <button
-                class='model-option'
-                :class="{ 'active': selectedModel.id === model.id }"
-                @click='selectModel(model)'>
-                <span x-text='model.name'></span>
-              </button>
-            </template>
-          </div>
-        </div>
+        <button
+          @click='openModelSelector()'
+          class='btn btn-secondary model-btn'>
+          <i class='fa-solid fa-robot'></i>
+          <span x-show='loadingModel'>Loading...</span>
+          <template x-if='!loadingModel'>
+            <span>
+              <span x-text='selectedProvider === "gemini" ? "Gemini" : "Opencode"'></span>
+              <span x-text='selectedModel ? selectedModel.name : ""'></span>
+            </span>
+          </template>
+          <i class='fa-solid fa-chevron-down fa-xs'></i>
+        </button>
       </div>
     </div>
 
@@ -222,6 +210,214 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         </div>
       </div>
     </div>
+
+    <!-- CLI Not Installed Modal -->
+    <div
+      class='modal-overlay'
+      x-show='modals.cliRequired'
+      x-cloak
+      style='display: none;'
+      x-transition.opacity>
+      <div class='modal'>
+        <div class='modal-header'>
+          <h2><i class='fa-solid fa-terminal'></i> AI CLI Required</h2>
+        </div>
+        <div class='modal-body'>
+          <p class='modal-intro'>
+            To use this application, you need to install at least one AI CLI
+            tool.
+          </p>
+
+          <div class='cli-options'>
+            <div class='cli-option'>
+              <div class='cli-icon'>
+                <i class='fa-solid fa-robot'></i>
+              </div>
+              <div class='cli-info'>
+                <h3>Gemini CLI</h3>
+                <p>Google's AI coding assistant CLI</p>
+                <a
+                  href='https://ai.google.dev/gemini-api/docs/gemini-cli'
+                  target='_blank'
+                  class='install-link'>
+                  <i class='fa-solid fa-arrow-up-right-from-square'></i>
+                  View Installation Guide
+                </a>
+              </div>
+              <div
+                class='cli-status'
+                x-show='!cliAvailable.gemini'>
+                <span class='not-installed'>Not Installed</span>
+              </div>
+              <div
+                class='cli-status'
+                x-show='cliAvailable.gemini'>
+                <span class='installed'
+                  ><i class='fa-solid fa-check'></i> Ready</span
+                >
+              </div>
+            </div>
+
+            <div class='cli-option'>
+              <div class='cli-icon'>
+                <i class='fa-solid fa-robot'></i>
+              </div>
+              <div class='cli-info'>
+                <h3>Opencode CLI</h3>
+                <p>AI coding agent with multi-model support</p>
+                <a
+                  href='https://opencode.ai'
+                  target='_blank'
+                  class='install-link'>
+                  <i class='fa-solid fa-arrow-up-right-from-square'></i>
+                  View Installation Guide
+                </a>
+              </div>
+              <div
+                class='cli-status'
+                x-show='!cliAvailable.opencode'>
+                <span class='not-installed'>Not Installed</span>
+              </div>
+              <div
+                class='cli-status'
+                x-show='cliAvailable.opencode'>
+                <span class='installed'
+                  ><i class='fa-solid fa-check'></i> Ready</span
+                >
+              </div>
+            </div>
+          </div>
+
+          <p class='modal-note'>
+            <i class='fa-solid fa-info-circle'></i>
+            After installing, refresh the page to continue.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Model Selector Modal -->
+    <div
+      class='modal-overlay'
+      x-show='modals.modelSelector'
+      x-cloak
+      style='display: none;'
+      x-transition.opacity>
+      <div
+        class='modal modal-wide'
+        @click.away='modals.modelSelector = false'>
+        <div class='modal-header'>
+          <h2><i class='fa-solid fa-robot'></i> Select AI Model</h2>
+          <button
+            @click='modals.modelSelector = false'
+            class='close-btn'>
+            <i class='fa-solid fa-xmark'></i>
+          </button>
+        </div>
+        <div class='modal-body'>
+          <div class='model-modal-content'>
+            <div class='model-sidebar'>
+              <div class='provider-section-title'>Provider</div>
+              <button
+                class='sidebar-btn'
+                :class="{ 'active': modalSelectedProvider === 'gemini' }"
+                @click='selectProvider("gemini")'>
+                <i class='fa-solid fa-robot'></i> Gemini CLI
+              </button>
+              <button
+                class='sidebar-btn'
+                :class="{ 'active': modalSelectedProvider === 'opencode' }"
+                @click='selectProvider("opencode")'>
+                <i class='fa-solid fa-robot'></i> Opencode CLI
+              </button>
+
+              <template x-if='modalSelectedProvider === "opencode"'>
+                <div>
+                  <div class='provider-section-title'>Filter by Tier</div>
+                  <button
+                    class='sidebar-btn'
+                    :class="{ 'active': modelFilterTier === 'all' }"
+                    @click='modelFilterTier = "all"'>
+                    <i class='fa-solid fa-list'></i> All Models
+                  </button>
+                  <button
+                    class='sidebar-btn'
+                    :class="{ 'active': modelFilterTier === 'free' }"
+                    @click='modelFilterTier = "free"'>
+                    <i class='fa-solid fa-gift'></i> Free Only
+                  </button>
+                  <button
+                    class='sidebar-btn'
+                    :class="{ 'active': modelFilterTier === 'paid' }"
+                    @click='modelFilterTier = "paid"'>
+                    <i class='fa-solid fa-credit-card'></i> Paid Only
+                  </button>
+                </div>
+              </template>
+            </div>
+            <div class='model-list-container'>
+              <template x-if='modalFilteredModels.length === 0'>
+                <div class='no-models'>
+                  <p>No models available for this filter.</p>
+                  <p x-show='modalSelectedProvider === "opencode"'>
+                    Configure API tokens in <a href='/settings'>Settings</a> to see
+                    paid models.
+                  </p>
+                </div>
+              </template>
+              <div class='model-list'>
+                <template
+                  x-for='model in modalFilteredModels'
+                  :key='model.id'>
+                  <button
+                    class='model-card'
+                    :class="{ 'active': modalSelectedModel && modalSelectedModel.id === model.id }"
+                    @click='selectModel(model)'>
+                    <div class='model-card-header'>
+                      <span
+                        class='model-name'
+                        x-text='model.name'
+                      ></span>
+                      <div class='model-badges'>
+                        <template x-if="model.tier === 'free'">
+                          <span class='model-badge free'>Free</span>
+                        </template>
+                        <template x-if="model.tier === 'paid'">
+                          <span class='model-badge paid'>Paid</span>
+                        </template>
+                        <template x-if="modalSelectedModel && modalSelectedModel.id === model.id">
+                          <span class='model-badge selected'><i class='fa-solid fa-check'></i></span>
+                        </template>
+                      </div>
+                    </div>
+                    <div
+                      class='model-provider'
+                      x-text='model.provider || "gemini"'
+                    ></div>
+                  </button>
+                </template>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class='modal-footer'>
+          <a
+            href='/settings'
+            class='btn btn-secondary'>
+            <i class='fa-solid fa-gear'></i> Configure API Tokens
+          </a>
+          <div class='selected-preview'>
+            <span>Selected:</span>
+            <strong x-text='modalSelectedModel ? modalSelectedModel.name : ""'></strong>
+          </div>
+          <button
+            @click='saveAndClose()'
+            class='btn'>
+            <i class='fa-solid fa-check'></i> Done
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </DashboardLayout>
 
@@ -234,65 +430,229 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       loadingLogs: false,
       modals: {
         switchProject: false,
+        cliRequired: false,
+        modelSelector: false,
       },
+      modelFilterTier: 'all',
       submitting: false,
 
-      // Gemini Model Selector State
-      dropdownOpen: false,
-      models: [
-        { id: 'gemini-3.1-pro-preview', name: 'Gemini 3.1 Pro' },
-        { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro' },
-        { id: 'gemini-3-flash-preview', name: 'Gemini 3 Flash' },
-        { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-        { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-        { id: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Lite' },
-        // Add more models here if needed
-      ],
-      selectedModel: {
-        id: 'gemini-3.1-pro-preview',
-        name: 'Gemini 3.1 Pro',
-      }, // Default model
-
-      init() {
-        this.initModel();
-        this.initProject();
+      // CLI Availability State
+      cliAvailable: {
+        gemini: false,
+        opencode: false,
       },
 
-      initModel() {
-        const storedModel = localStorage.getItem('selectedGeminiModel');
-        if (storedModel) {
-          this.selectedModel = JSON.parse(storedModel);
+      // Provider & Model Selector State
+      dropdownOpen: false,
+      selectedProvider: 'gemini',
+      geminiModels: [],
+      opencodeModels: [],
+      selectedModel: null,
+      modalSelectedModel: null,
+      configuredProviders: [],
+      loadingModel: true,
+
+      get availableProviders() {
+        return Object.entries(this.cliAvailable)
+          .filter(([_, available]) => available)
+          .map(([provider]) => provider);
+      },
+
+      get currentModels() {
+        if (this.selectedProvider === 'opencode') {
+          return this.opencodeModels;
+        }
+        return this.geminiModels;
+      },
+
+      get filteredModels() {
+        if (this.selectedProvider !== 'opencode') {
+          return this.geminiModels;
+        }
+        let models = this.opencodeModels.filter((m) => m.configured);
+        if (this.modelFilterTier !== 'all') {
+          models = models.filter((m) => m.tier === this.modelFilterTier);
+        }
+        return models;
+      },
+
+      get modalFilteredModels() {
+        const provider = this.modalSelectedProvider || 'gemini';
+        if (provider !== 'opencode') {
+          return this.geminiModels;
+        }
+        let models = this.opencodeModels.filter((m) => m.configured);
+        if (this.modelFilterTier !== 'all') {
+          models = models.filter((m) => m.tier === this.modelFilterTier);
+        }
+        return models;
+      },
+
+      openModelSelector() {
+        this.modalSelectedProvider = this.selectedProvider;
+        this.modalSelectedModel = this.selectedModel;
+        this.modals.modelSelector = true;
+      },
+
+      async checkCliAvailability() {
+        try {
+          const res = await fetch('/api/status');
+          if (res.ok) {
+            const data = await res.json();
+            this.cliAvailable = data.cli;
+            if (!this.cliAvailable.hasAny) {
+              this.modals.cliRequired = true;
+            }
+          }
+        } catch (e) {
+          console.error('Failed to check CLI availability:', e);
         }
       },
 
-      initProject() {
-        this.fetchProjects().then(() => {
-          // Check URL for project_id
-          const urlParams = new URLSearchParams(window.location.search);
-          const projectId = urlParams.get('project_id');
-
-          if (projectId) {
-            const project = this.projects.find((p) => p.id === projectId);
-            if (project) {
-              this.switchProject(project, false);
+      init() {
+        Promise.all([
+          this.checkCliAvailability(),
+          this.loadModels(),
+          this.loadTokens(),
+        ]).then(() => {
+          return this.loadSelectedModel();
+        }).then(() => {
+          this.initProvider();
+          this.fetchProjects().then(() => {
+            const urlParams = new URLSearchParams(window.location.search);
+            const projectId = urlParams.get('project_id');
+            if (projectId) {
+              const project = this.projects.find((p) => p.id === projectId);
+              if (project) {
+                this.switchProject(project, false);
+              }
             }
-          }
+          });
         });
       },
 
-      toggleModelDropdown() {
-        this.dropdownOpen = !this.dropdownOpen;
+      async loadModels() {
+        try {
+          const res = await fetch('/api/settings/models');
+          if (res.ok) {
+            const models = await res.json();
+            this.geminiModels = models.filter(m => m.provider === 'gemini');
+            this.opencodeModels = models.filter(m => m.provider !== 'gemini');
+          }
+        } catch (e) {
+          console.error('Failed to load models:', e);
+          this.loadingModel = false;
+        }
+      },
+
+      async loadSelectedModel() {
+        try {
+          const res = await fetch('/api/settings/selected');
+          if (res.ok) {
+            const data = await res.json();
+            this.selectedProvider = data.provider;
+            
+            const allModels = [...this.geminiModels, ...this.opencodeModels];
+            const savedModel = allModels.find(m => m.id === data.model_id);
+            
+            if (savedModel) {
+              this.selectedModel = savedModel;
+              this.selectedProvider = savedModel.provider === 'gemini' ? 'gemini' : 'opencode';
+            } else if (data.model) {
+              this.selectedModel = data.model;
+              this.selectedProvider = data.model.provider === 'gemini' ? 'gemini' : 'opencode';
+            }
+            this.loadingModel = false;
+          }
+        } catch (e) {
+          console.error('Failed to load selected model:', e);
+          this.loadingModel = false;
+        }
+      },
+
+      async loadTokens() {
+        try {
+          const res = await fetch('/api/settings/tokens');
+          if (res.ok) {
+            const tokens = await res.json();
+            this.configuredProviders = Object.entries(tokens)
+              .filter(([_, data]) => data.hasToken)
+              .map(([provider]) => provider);
+          }
+        } catch (e) {
+          console.error('Failed to load tokens:', e);
+        }
+      },
+
+      async saveSelectedModel() {
+        if (!this.selectedModel) return;
+        try {
+          await fetch('/api/settings/selected', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              provider: this.selectedProvider,
+              model_id: this.selectedModel.id,
+            }),
+          });
+        } catch (e) {
+          console.error('Failed to save selected model:', e);
+        }
+      },
+
+      saveAndClose() {
+        if (this.modalSelectedModel) {
+          this.selectedModel = this.modalSelectedModel;
+          this.selectedProvider = this.modalSelectedProvider;
+          this.saveSelectedModel();
+        }
+        this.modals.modelSelector = false;
+      },
+
+      selectProvider(provider) {
+        this.modalSelectedProvider = provider;
+        this.modelFilterTier = 'all';
+        const models = this.getModels(provider);
+        if (models.length > 0) {
+          this.modalSelectedModel = models[0];
+        }
       },
 
       selectModel(model) {
-        this.selectedModel = model;
-        this.dropdownOpen = false;
-        localStorage.setItem('selectedGeminiModel', JSON.stringify(model));
-        window.notify(
-          `Selected Gemini model: ${model.name}`,
-          'info',
-          'fa-robot',
-        );
+        this.modalSelectedModel = model;
+        this.modalSelectedProvider = model.provider === 'gemini' ? 'gemini' : 'opencode';
+      },
+
+      getModels(provider) {
+        if (provider === 'opencode') {
+          return this.opencodeModels.filter(m => m.configured);
+        }
+        return this.geminiModels;
+      },
+
+      initProvider() {
+        if (!this.selectedModel) {
+          if (this.cliAvailable.gemini && !this.cliAvailable.opencode) {
+            this.selectedProvider = 'gemini';
+          } else if (this.cliAvailable.opencode && !this.cliAvailable.gemini) {
+            this.selectedProvider = 'opencode';
+          } else if (!this.cliAvailable.gemini && !this.cliAvailable.opencode) {
+            this.selectedProvider = 'gemini';
+          }
+          const models = this.getModels(this.selectedProvider);
+          if (models.length > 0) {
+            this.selectedModel = models[0];
+          }
+        } else {
+          const modelProvider = this.selectedModel.provider === 'gemini' ? 'gemini' : 'opencode';
+          if (this.selectedProvider !== modelProvider) {
+            this.selectedProvider = modelProvider;
+            const models = this.getModels(this.selectedProvider);
+            if (models.length > 0 && !models.find(m => m.id === this.selectedModel.id)) {
+              this.selectedModel = models[0];
+            }
+          }
+        }
       },
 
       fetchProjects() {
@@ -394,6 +754,25 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
     min-width: 220px; /* Slightly increased min-width for better readability */
     margin-top: 0.5rem; /* Space between button and dropdown */
     flex-shrink: 0;
+    display: flex;
+  }
+
+  .provider-section {
+    flex: 1;
+    padding: 0.5rem;
+  }
+
+  .provider-section:not(:last-child) {
+    border-right: 1px solid var(--border-color);
+  }
+
+  .provider-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--accent-color);
+    font-weight: bold;
+    padding: 0.25rem 0.5rem;
+    margin-bottom: 0.25rem;
   }
 
   .model-option {
@@ -673,5 +1052,324 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
   .no-projects p {
     margin-bottom: 1rem;
     color: var(--accent-color);
+  }
+
+  /* CLI Required Modal */
+  .modal-intro {
+    text-align: center;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+  }
+
+  .cli-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .cli-option {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-color);
+  }
+
+  .cli-icon {
+    font-size: 2rem;
+    color: var(--primary-color);
+    width: 50px;
+    text-align: center;
+  }
+
+  .cli-info {
+    flex: 1;
+  }
+
+  .cli-info h3 {
+    margin: 0 0 0.25rem 0;
+    color: var(--text-color);
+    font-size: 1.1rem;
+  }
+
+  .cli-info p {
+    margin: 0 0 0.5rem 0;
+    color: var(--accent-color);
+    font-size: 0.85rem;
+  }
+
+  .install-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .install-link:hover {
+    text-decoration: underline;
+  }
+
+  .cli-status {
+    min-width: 100px;
+    text-align: right;
+  }
+
+  .cli-status .not-installed {
+    color: #e74c3c;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .cli-status .installed {
+    color: #2ecc71;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .modal-note {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    color: var(--accent-color);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .modal .modal-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .modal-wide {
+    max-width: 800px;
+    width: 90vw;
+  }
+
+  .model-modal-content {
+    display: flex;
+    gap: 1.5rem;
+    min-height: 400px;
+  }
+
+  .model-sidebar {
+    width: 180px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .provider-section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--accent-color);
+    font-weight: bold;
+    padding: 0.5rem 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .sidebar-btn {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    margin-bottom: 5px;
+  }
+
+  .sidebar-btn:hover {
+    background: var(--bg-color);
+    border-color: var(--primary-color);
+  }
+
+  .sidebar-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+
+  .model-list-container {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 450px;
+  }
+
+  .model-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .model-card {
+    width: 100%;
+    text-align: left;
+    padding: 1rem;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .model-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .model-card.active {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, #f0f9f6 0%, #fff 100%);
+    box-shadow: 0 0 0 2px var(--primary-color);
+  }
+
+  .model-card.active .model-name {
+    color: var(--primary-color);
+  }
+
+  .model-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .model-name {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.95rem;
+  }
+
+  .model-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .model-badge.free {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  .model-badge.paid {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .model-badge.selected {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .model-badges {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+  }
+
+  .model-provider {
+    font-size: 0.75rem;
+    color: var(--accent-color);
+    text-transform: lowercase;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-color);
+    border-radius: 0 0 8px 8px;
+  }
+
+  .selected-preview {
+    font-size: 0.9rem;
+    color: var(--text-color);
+  }
+
+  .selected-preview strong {
+    margin-right: 10px;
+    color: var(--primary-color);
+  }
+
+  .model-btn {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .model-modal-content {
+      flex-direction: column;
+    }
+
+    .model-sidebar {
+      width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .model-list {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .no-models {
+    text-align: center;
+    padding: 2rem;
+    color: var(--accent-color);
+  }
+
+  .no-models p {
+    margin: 0.5rem 0;
+  }
+
+  .no-models a {
+    color: var(--primary-color);
+    font-weight: 600;
+  }
+
+  .modal-footer .btn-secondary {
+    margin-right: auto;
+  }
+
+  @media (max-width: 768px) {
+    .modal-footer {
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .modal-footer .btn-secondary {
+      margin-right: 0;
+      width: 100%;
+      justify-content: center;
+    }
   }
 </style>
