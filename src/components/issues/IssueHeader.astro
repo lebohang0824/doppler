@@ -1,0 +1,155 @@
+---
+---
+<div class="header">
+    <div class="title-section">
+        <a :href="'/issues?project_id=' + projectId" class="btn btn-secondary btn-small">
+            <i class="fa-solid fa-arrow-left"></i> Back
+        </a>
+        <h1 x-text="title"></h1>
+    </div>
+    <div class="header-actions">
+        <!-- Execution Timer -->
+        <template x-if="status === 'executing'">
+            <div class="execution-timer">
+                <i class="fa-solid fa-stopwatch"></i>
+                <span x-text="elapsedTime"></span>
+            </div>
+        </template>
+        
+        <!-- Edit Button (Todo only) -->
+        <template x-if="status === 'todo'">
+            <button 
+                @click="openEdit()" 
+                class="btn btn-secondary btn-small"
+                title="Edit Issue">
+                <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+        </template>
+
+        <!-- Delete Button -->
+        <template x-if="status !== 'executing'">
+            <button 
+                @click="deleteIssue()" 
+                class="btn btn-danger btn-small"
+                title="Delete Issue">
+                <i class="fa-solid fa-trash"></i>
+            </button>
+        </template>
+
+        <!-- Testing State Actions -->
+        <template x-if="status === 'testing'">
+            <div class="action-group">
+                <button @click="modals.approve = true" class="btn btn-success">
+                    <i class="fa-solid fa-check"></i> Approve
+                </button>
+                <button @click="modals.reject = true" class="btn btn-danger">
+                    <i class="fa-solid fa-xmark"></i> Reject
+                </button>
+            </div>
+        </template>
+
+        <!-- Execution Actions -->
+        <template x-if="status === 'todo' || status === 'queued'">
+            <div class="execution-actions">
+                <div class="selected-model-pill" x-show="selectedModel">
+                    <i class="fa-solid fa-microchip"></i>
+                    <span x-text="selectedModel?.model?.name || selectedModel?.model_id"></span>
+                    <a href="/settings" title="Change model"><i class="fa-solid fa-gear"></i></a>
+                </div>
+                <button 
+                    @click="executeIssue()" 
+                    class="btn btn-primary"
+                    :disabled="isExecuting">
+                    <i class="fa-solid fa-play"></i>
+                    <span>Execute</span>
+                </button>
+            </div>
+        </template>
+        <template x-if="status === 'executing'">
+            <button 
+                @click="cancelExecution()" 
+                class="btn btn-danger"
+                :disabled="isCancelling">
+                <i class="fa-solid" :class="isCancelling ? 'fa-spinner fa-spin' : 'fa-stop'"></i>
+                <span x-text="isCancelling ? 'Cancelling...' : 'Cancel'"></span>
+            </button>
+        </template>
+    </div>
+</div>
+
+<style>
+  .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+  }
+  
+  .title-section {
+      display: flex;
+      align-items: center;
+      gap: 1.5rem;
+  }
+
+  .title-section h1 {
+      margin: 0;
+      font-size: 1.5rem;
+  }
+
+  .header-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+  }
+
+  .action-group {
+      display: flex;
+      gap: 0.75rem;
+  }
+
+  .execution-timer {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      background: #fffbeb;
+      border: 1px solid #fef3c7;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      color: #d97706;
+      font-weight: 600;
+      font-family: monospace;
+  }
+
+  .execution-actions {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+  }
+
+  .selected-model-pill {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      background: #f1f5f9;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      font-size: 0.8rem;
+      color: var(--accent-color);
+  }
+
+  .selected-model-pill i {
+      font-size: 0.75rem;
+  }
+
+  .selected-model-pill a {
+      color: var(--accent-color);
+      margin-left: 0.25rem;
+      transition: color 0.2s;
+  }
+
+  .selected-model-pill a:hover {
+      color: var(--primary-color);
+  }
+</style>

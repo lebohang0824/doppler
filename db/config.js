@@ -35,6 +35,7 @@ const Report = defineTable({
     summary: column.text({ optional: true }),
     files_changed: column.json({ optional: true }),
     details: column.text({ optional: true }),
+    duration: column.number({ optional: true }), // duration in seconds
     created_at: column.date({ default: NOW }),
   },
 });

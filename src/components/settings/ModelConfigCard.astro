@@ -1,0 +1,184 @@
+---
+
+---
+
+<div class='card'>
+  <div class='card-header card-header-special'>
+    <h2><i class='fa-solid fa-circle-info'></i> Model Configuration Status</h2>
+    <button
+      @click='refreshModels'
+      class='btn btn-secondary btn-small'>
+      <i class='fa-solid fa-rotate-right'></i> Refresh
+    </button>
+  </div>
+  <div class='card-body'>
+    <template x-if='loadingModels'>
+      <div class='loading-state'>Loading models...</div>
+    </template>
+    <div
+      class='model-status-list'
+      x-show='!loadingModels'>
+      <template
+        x-for='model in modelStatusList'
+        :key='model.id'>
+        <div
+          class='model-status-item'
+          :class="[model.configured ? 'available' : 'unavailable', selectedModelId === model.id ? 'selected' : '']">
+          <div class='model-info'>
+            <span
+              class='model-name'
+              x-text='model.name'
+            ></span>
+            <span
+              class='model-provider'
+              x-text='model.provider'
+            ></span>
+          </div>
+          <div class='model-actions'>
+            <div class='model-badges'>
+              <span
+                class='tier-badge'
+                :class='model.tier'
+                x-text='model.tier'
+              ></span>
+              <span
+                class='status-badge'
+                :class="model.configured ? 'configured' : 'not-configured'"
+                x-text="model.configured ? 'Available' : 'Token Required'"
+              ></span>
+            </div>
+            <button
+              @click='selectModel(model)'
+              class='btn btn-small'
+              :class="selectedModelId === model.id ? 'btn-primary' : 'btn-secondary'"
+              :disabled="!model.configured && model.tier === 'paid'">
+              <i
+                class='fa-solid'
+                :class="selectedModelId === model.id ? 'fa-check' : 'fa-circle-plus'"
+              ></i>
+              <span
+                x-text="selectedModelId === model.id ? 'Selected' : 'Select'"
+              ></span>
+            </button>
+          </div>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+
+<style>
+  .loading-state {
+    text-align: center;
+    padding: 2rem;
+    color: var(--accent-color);
+  }
+
+  .model-status-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .model-status-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    background: white;
+  }
+
+  .model-status-item.available {
+    border-left: 3px solid #16a34a;
+  }
+
+  .model-status-item.unavailable {
+    border-left: 3px solid #d97706;
+    opacity: 0.7;
+  }
+
+  .model-status-item.selected {
+    background: #f0fdf4;
+    border: 1px solid #16a34a;
+    border-left: 3px solid #16a34a;
+  }
+
+  .model-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .model-actions {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+  }
+
+  .model-name {
+    font-weight: 500;
+    color: var(--text-color);
+  }
+
+  .model-provider {
+    font-size: 0.75rem;
+    color: var(--accent-color);
+    text-transform: lowercase;
+  }
+
+  .model-badges {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .tier-badge {
+    font-size: 0.65rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .tier-badge.free {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  .tier-badge.paid {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .status-badge {
+    font-size: 0.7rem;
+    padding: 0.2rem 0.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+  }
+
+  .status-badge.configured {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  .status-badge.not-configured {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+
+  .card-header-special {
+    margin-bottom: 10px;
+  }
+
+  @media (max-width: 768px) {
+    .model-status-item {
+      flex-direction: column;
+      align-items: flex-start;
+      gap: 0.5rem;
+    }
+  }
+</style>

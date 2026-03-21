@@ -1,0 +1,119 @@
+---
+---
+<div class="card reports-card">
+    <div class="card-header">
+        <h2>Execution Results</h2>
+    </div>
+    <div class="reports-list">
+        <template x-if="loadingReports">
+            <div class="loading-state">Loading results...</div>
+        </template>
+        <template x-if="!loadingReports && reports.length === 0">
+            <div class="empty-state-small">No results yet.</div>
+        </template>
+        <template x-for="report in reports" :key="report.id">
+            <div class="report-item">
+                <div class="report-header">
+                    <span class="report-date" x-text="new Date(report.created_at).toLocaleString()"></span>
+                    <template x-if="report.duration">
+                        <span class="report-duration">
+                            <i class="fa-solid fa-clock"></i>
+                            <span x-text="formatDuration(report.duration)"></span>
+                        </span>
+                    </template>
+                </div>
+                <div class="report-files" x-show="parseFiles(report).length > 0">
+                    <label>Files Affected</label>
+                    <ul>
+                        <template x-for="file in parseFiles(report)" :key="file">
+                            <li x-text="file"></li>
+                        </template>
+                    </ul>
+                </div>
+                <div class="report-details" x-text="report.details"></div>
+            </div>
+        </template>
+    </div>
+</div>
+
+<style>
+  .reports-list {
+      padding: 0;
+  }
+
+  .report-item {
+      padding: 1.5rem;
+      border-bottom: 1px solid var(--border-color);
+  }
+
+  .report-item:last-child {
+      border-bottom: none;
+  }
+
+  .report-header {
+      margin-bottom: 0.5rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+  }
+
+  .report-date {
+      font-size: 0.8rem;
+      color: var(--accent-color);
+  }
+
+  .report-duration {
+      font-size: 0.75rem;
+      color: #2563eb;
+      background: #eff6ff;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 0.25rem;
+  }
+
+  .report-files {
+      margin-bottom: 1rem;
+      padding: 0.75rem 1rem;
+      background: #f1f8ff;
+      border: 1px solid #c8e1ff;
+      border-radius: 4px;
+  }
+
+  .report-files label {
+      display: block;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+      font-weight: bold;
+      color: #0366d6;
+      margin-bottom: 0.5rem;
+  }
+
+  .report-files ul {
+      margin: 0;
+      padding-left: 1.25rem;
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #24292e;
+  }
+
+  .report-details {
+      white-space: pre-wrap;
+      font-family: monospace;
+      background: #f8f9fa;
+      padding: 1rem;
+      border-radius: 4px;
+      font-size: 0.9rem;
+      color: var(--text-color);
+      border: 1px solid var(--border-color);
+  }
+
+  .loading-state,
+  .empty-state-small {
+    padding: 2rem;
+    text-align: center;
+    color: var(--accent-color);
+  }
+</style>

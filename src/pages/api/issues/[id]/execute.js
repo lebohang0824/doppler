@@ -146,8 +146,8 @@ export const POST = async ({ params }) => {
         },
       }, modelId)
         .then(async (result) => {
-          const duration = actualStartTime ? Math.floor((new Date() - actualStartTime) / 1000) : 0;
-          const durationStr = duration < 60 ? `${duration}s` : `${Math.floor(duration / 60)}m ${duration % 60}s`;
+          const durationSecs = actualStartTime ? Math.floor((new Date() - actualStartTime) / 1000) : 0;
+          const durationStr = durationSecs < 60 ? `${durationSecs}s` : `${Math.floor(durationSecs / 60)}m ${durationSecs % 60}s`;
           
           const cleanResult = result.replace(/\x1B\[[0-9;]*[JKmsu]/g, '');
           const uniqueFiles = extractFilesOpencode(cleanResult);
@@ -161,6 +161,7 @@ export const POST = async ({ params }) => {
             summary: 'Opencode CLI execution result',
             details: result,
             files_changed: uniqueFiles,
+            duration: durationSecs,
             created_at: new Date(),
           });
 
@@ -217,8 +218,8 @@ export const POST = async ({ params }) => {
         },
       }, modelId)
         .then(async (result) => {
-          const duration = actualStartTime ? Math.floor((new Date() - actualStartTime) / 1000) : 0;
-          const durationStr = duration < 60 ? `${duration}s` : `${Math.floor(duration / 60)}m ${duration % 60}s`;
+          const durationSecs = actualStartTime ? Math.floor((new Date() - actualStartTime) / 1000) : 0;
+          const durationStr = durationSecs < 60 ? `${durationSecs}s` : `${Math.floor(durationSecs / 60)}m ${durationSecs % 60}s`;
 
           const cleanResult = result.replace(/\x1B\[[0-9;]*[JKmsu]/g, '');
           const uniqueFiles = extractFiles(cleanResult);
@@ -232,6 +233,7 @@ export const POST = async ({ params }) => {
             summary: 'Gemini CLI execution result',
             details: result,
             files_changed: uniqueFiles,
+            duration: durationSecs,
             created_at: new Date(),
           });
 

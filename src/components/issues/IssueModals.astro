@@ -1,0 +1,115 @@
+---
+---
+<!-- Edit Modal -->
+<div class='modal-overlay' x-show='modals.edit' style='display: none;' x-transition.opacity>
+  <div class='modal' @click.away='modals.edit = false'>
+    <div class='modal-header'>
+      <h2>Edit Issue</h2>
+      <button @click='modals.edit = false' class='close-btn'><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form @submit.prevent='updateIssue()'>
+      <div class='modal-body'>
+        <div class='form-group'>
+          <label for='editTitle'>Title</label>
+          <input type='text' id='editTitle' x-model='editForm.title' required placeholder='Issue title...' />
+        </div>
+        <div class='form-group'>
+          <label for='editDescription'>Description</label>
+          <textarea id='editDescription' x-model='editForm.description' required placeholder='Details...'></textarea>
+        </div>
+        <div class='form-row'>
+          <div class='form-group'>
+            <label for='editType'>Type</label>
+            <select id='editType' x-model='editForm.type'>
+              <option value='Bug'>Bug</option>
+              <option value='Tweak'>Tweak</option>
+              <option value='Enhancement'>Enhancement</option>
+            </select>
+          </div>
+          <div class='form-group'>
+            <label for='editPriority'>Priority</label>
+            <select id='editPriority' x-model='editForm.priority'>
+              <option value='low'>Low</option>
+              <option value='medium'>Medium</option>
+              <option value='high'>High</option>
+              <option value='critical'>Critical</option>
+            </select>
+          </div>
+        </div>
+      </div>
+      <div class='modal-actions'>
+        <button type='button' @click='modals.edit = false' class='btn btn-secondary'>Cancel</button>
+        <button type='submit' class='btn btn-primary' :disabled='submitting'>
+          <i class="fa-solid fa-floppy-disk"></i> Save Changes
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Approve Modal -->
+<div class='modal-overlay' x-show='modals.approve' style='display: none;' x-transition.opacity>
+  <div class='modal' @click.away='modals.approve = false'>
+    <div class='modal-header'>
+      <h2>Approve & Commit</h2>
+      <button @click='modals.approve = false' class='close-btn'><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form @submit.prevent='approveIssue()'>
+      <div class='modal-body'>
+        <div class='form-group'>
+          <label for='approveMessage'>Commit Message</label>
+          <textarea id='approveMessage' x-model='approvalMessage' required placeholder='Describe what was fixed...'></textarea>
+        </div>
+      </div>
+      <div class='modal-actions'>
+        <button type='button' @click='modals.approve = false' class='btn btn-secondary'>Cancel</button>
+        <button type='submit' class='btn btn-success' :disabled='submitting'>
+          <i class="fa-solid fa-check"></i> Approve
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Reject Modal -->
+<div class='modal-overlay' x-show='modals.reject' style='display: none;' x-transition.opacity>
+  <div class='modal' @click.away='modals.reject = false'>
+    <div class='modal-header'>
+      <h2>Reject Changes</h2>
+      <button @click='modals.reject = false' class='close-btn'><i class="fa-solid fa-xmark"></i></button>
+    </div>
+    <form @submit.prevent='rejectIssue()'>
+      <div class='modal-body'>
+        <div class='form-group'>
+          <label for='rejectReason'>Rejection Reason</label>
+          <textarea id='rejectReason' x-model='rejectionReason' required placeholder='Why are these changes being rejected?'></textarea>
+        </div>
+      </div>
+      <div class='modal-actions'>
+        <button type='button' @click='modals.reject = false' class='btn btn-secondary'>Cancel</button>
+        <button type='submit' class='btn btn-danger' :disabled='submitting'>
+          <i class="fa-solid fa-xmark"></i> Reject
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Delete Modal -->
+<div class='modal-overlay' x-show='modals.delete' style='display: none;' x-transition.opacity>
+    <div class='modal' @click.away='modals.delete = false'>
+        <div class='modal-header'>
+            <h2>Delete Issue</h2>
+            <button @click='modals.delete = false' class='close-btn'><i class="fa-solid fa-xmark"></i></button>
+        </div>
+        <div class='modal-body'>
+            <p>Are you sure you want to delete this issue? This action cannot be undone.</p>
+        </div>
+        <div class='modal-actions'>
+            <button type='button' @click='modals.delete = false' class='btn btn-secondary'>Cancel</button>
+            <button type='button' @click='confirmDelete' class='btn btn-danger' :disabled='submitting'>
+                <i class="fa-solid fa-trash"></i> Delete
+            </button>
+        </div>
+    </div>
+</div>

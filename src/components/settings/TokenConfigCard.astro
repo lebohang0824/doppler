@@ -1,0 +1,192 @@
+---
+---
+<div class='card'>
+  <div class='card-header'>
+    <h2><i class='fa-solid fa-key'></i> API Tokens</h2>
+  </div>
+  <div class='card-body'>
+    <p class='settings-intro'>
+      Configure API tokens for paid models. Free models don't require
+      tokens.
+    </p>
+
+    <div class='token-list'>
+      <template
+        x-for='provider in providerConfigs'
+        :key='provider.id'>
+        <div class='token-item'>
+          <div class='token-header'>
+            <div class='provider-info'>
+              <span
+                class='provider-name'
+                x-text='provider.name'
+              ></span>
+              <span
+                class='provider-id'
+                x-text='provider.id'
+              ></span>
+            </div>
+            <span
+              class='config-status'
+              :class="provider.hasToken ? 'configured' : 'not-configured'"
+              x-text="provider.hasToken ? 'Configured' : 'Not Configured'">
+            </span>
+          </div>
+          <div class='token-input-group'>
+            <input
+              :type="provider.showToken ? 'text' : 'password'"
+              :id="'token-' + provider.id"
+              x-model='provider.token'
+              :placeholder='`Enter ${provider.name} API token...`'
+              class='token-input'
+              autocomplete='off'
+            />
+            <button
+              type='button'
+              @click='provider.showToken = !provider.showToken'
+              class='btn btn-secondary toggle-visibility'>
+              <i
+                class='fa-solid'
+                :class="provider.showToken ? 'fa-eye-slash' : 'fa-eye'"
+              ></i>
+            </button>
+            <button
+              type='button'
+              @click='saveToken(provider)'
+              class='btn btn-secondary save-btn'>
+              <i class='fa-solid fa-floppy-disk'></i>
+            </button>
+            <button
+              type='button'
+              @click='clearToken(provider)'
+              class='btn btn-secondary clear-btn'
+              x-show='provider.hasToken'>
+              <i class='fa-solid fa-trash'></i>
+            </button>
+          </div>
+          <p
+            class='token-hint'
+            x-text='provider.hint'
+          ></p>
+        </div>
+      </template>
+    </div>
+  </div>
+</div>
+
+<style>
+  .settings-intro {
+    color: var(--accent-color);
+    margin-bottom: 1.5rem;
+  }
+
+  .token-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .token-item {
+    padding: 1rem;
+    background: var(--bg-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+  }
+
+  .token-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .provider-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.15rem;
+  }
+
+  .provider-name {
+    font-weight: 600;
+    color: var(--text-color);
+  }
+
+  .provider-id {
+    font-size: 0.75rem;
+    color: var(--accent-color);
+    font-family: monospace;
+  }
+
+  .config-status {
+    font-size: 0.75rem;
+    padding: 0.25rem 0.75rem;
+    border-radius: 12px;
+    font-weight: 600;
+  }
+
+  .config-status.configured {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  .config-status.not-configured {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .token-input-group {
+    display: flex;
+    gap: 0.5rem;
+  }
+
+  .token-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-family: monospace;
+    font-size: 0.9rem;
+  }
+
+  .token-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(149, 204, 191, 0.2);
+  }
+
+  .toggle-visibility,
+  .save-btn,
+  .clear-btn {
+    padding: 0.75rem;
+  }
+
+  .save-btn {
+    color: var(--primary-color);
+  }
+
+  .clear-btn {
+    color: #e74c3c;
+  }
+
+  .clear-btn:hover {
+    background: #fee2e2;
+  }
+
+  .token-hint {
+    margin-top: 0.5rem;
+    font-size: 0.8rem;
+    color: var(--accent-color);
+  }
+
+  @media (max-width: 768px) {
+    .token-input-group {
+      flex-direction: column;
+    }
+
+    .toggle-visibility,
+    .save-btn,
+    .clear-btn {
+      width: 100%;
+    }
+  }
+</style>

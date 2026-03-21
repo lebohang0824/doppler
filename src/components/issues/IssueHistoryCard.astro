@@ -1,0 +1,105 @@
+---
+---
+<div class="card logs-card">
+    <div class="card-header">
+        <h2>Issue History</h2>
+        <button @click="fetchLogs()" class="refresh-btn">
+            <i class="fa-solid fa-rotate-right"></i>
+        </button>
+    </div>
+    <div class="logs-list">
+        <template x-if="loadingLogs">
+            <div class="loading-state">Loading logs...</div>
+        </template>
+        <template x-if="!loadingLogs && logs.length === 0">
+            <div class="empty-state-small">No history found.</div>
+        </template>
+        <template x-for="log in logs" :key="log.id">
+            <div class="log-item">
+                <div class="log-icon">
+                    <i class="fa-solid fa-circle-info"></i>
+                </div>
+                <div class="log-content">
+                    <div class="log-header">
+                        <span class="log-action" x-text="log.action"></span>
+                        <span class="log-date" x-text="new Date(log.created_at).toLocaleTimeString()"></span>
+                    </div>
+                    <div class="log-summary" x-text="log.summary"></div>
+                </div>
+            </div>
+        </template>
+    </div>
+</div>
+
+<style>
+  .refresh-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--accent-color);
+    padding: 0.25rem;
+    border-radius: 4px;
+  }
+
+  .refresh-btn:hover {
+    background-color: var(--bg-color);
+    color: var(--primary-color);
+  }
+
+  .logs-list {
+    padding: 0;
+    max-height: 400px;
+    overflow-y: auto;
+  }
+
+  .log-item {
+    display: flex;
+    gap: 1rem;
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f9f9f9;
+  }
+
+  .log-item:last-child {
+    border-bottom: none;
+  }
+
+  .log-icon {
+    color: var(--primary-color);
+    margin-top: 0.25rem;
+  }
+
+  .log-content {
+    flex: 1;
+  }
+
+  .log-header {
+    display: flex;
+    justify-content: space-between;
+    font-size: 0.85rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .log-action {
+    font-weight: bold;
+    color: var(--text-color);
+  }
+
+  .log-date {
+    color: var(--accent-color);
+    font-size: 0.75rem;
+  }
+
+  .log-summary {
+    color: var(--text-color);
+    font-size: 0.9rem;
+    line-height: 1.4;
+    opacity: 0.9;
+  }
+
+  .loading-state,
+  .empty-state-small {
+    padding: 2rem;
+    text-align: center;
+    color: var(--accent-color);
+  }
+</style>
