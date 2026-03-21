@@ -51,3 +51,20 @@ export async function initializeWithFirstCommit(dir) {
     await git.commit('Initial commit');
   }
 }
+
+/**
+ * Gets the status of the git repository at the specified directory.
+ * @param {string} dir - The directory path.
+ * @returns {Promise<string[]>} - A list of files with their status.
+ */
+export async function getGitStatus(dir) {
+  const git = simpleGit(dir);
+  const status = await git.status();
+
+  const files = [];
+  status.modified.forEach((file) => files.push(`Modified: ${file}`));
+  status.created.forEach((file) => files.push(`Added: ${file}`));
+  status.deleted.forEach((file) => files.push(`Deleted: ${file}`));
+
+  return files;
+}
