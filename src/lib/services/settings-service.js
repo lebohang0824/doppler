@@ -1,36 +1,6 @@
-import { db, ApiToken, Model, SelectedModel, eq } from 'astro:db';
+import { db, Model, SelectedModel, eq } from 'astro:db';
 
 export class SettingsService {
-  // --- Tokens ---
-  static async getAllTokens() {
-    return await db.select().from(ApiToken);
-  }
-
-  static async getTokenByProvider(provider) {
-    return await db.select().from(ApiToken).where(eq(ApiToken.provider, provider)).get();
-  }
-
-  static async saveToken(provider, token) {
-    const existing = await this.getTokenByProvider(provider);
-    const now = new Date();
-    if (existing) {
-      await db.update(ApiToken).set({ token, updated_at: now }).where(eq(ApiToken.provider, provider));
-    } else {
-      await db.insert(ApiToken).values({
-        id: crypto.randomUUID(),
-        provider,
-        token,
-        created_at: now,
-        updated_at: now,
-      });
-    }
-    return await this.getTokenByProvider(provider);
-  }
-
-  static async deleteToken(provider) {
-    return await db.delete(ApiToken).where(eq(ApiToken.provider, provider));
-  }
-
   // --- Models ---
   static async getAllModels() {
     return await db.select().from(Model);

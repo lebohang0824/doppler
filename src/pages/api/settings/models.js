@@ -46,17 +46,6 @@ export const GET = async ({ url }) => {
     const provider = url.searchParams.get('provider');
     const tier = url.searchParams.get('tier');
 
-    let tokens = {};
-    try {
-      const tokenRows = await SettingsService.getAllTokens();
-      tokens = tokenRows.filter(t => t.token).reduce((acc, t) => {
-        acc[t.provider] = true;
-        return acc;
-      }, {});
-    } catch (e) {
-      console.warn('Could not fetch tokens:', e);
-    }
-
     let models = [];
     try {
       const dbModels = await SettingsService.getAllModels();
@@ -70,30 +59,21 @@ export const GET = async ({ url }) => {
       models = defaultModels;
     }
 
-    let result = models.map(model => ({
-      ...model,
-      configured: model.tier === 'free' || tokens[model.provider],
-    }));
-
     if (provider) {
-      result = result.filter(m => m.provider === provider);
+      models = models.filter(m => m.provider === provider);
     }
 
     if (tier) {
-      result = result.filter(m => m.tier === tier);
+      models = models.filter(m => m.tier === tier);
     }
 
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(models), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error(error);
-    let result = defaultModels.map(model => ({
-      ...model,
-      configured: model.tier === 'free',
-    }));
-    return new Response(JSON.stringify(result), {
+    return new Response(JSON.stringify(defaultModels), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
     });

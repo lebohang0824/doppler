@@ -1,6 +1,5 @@
 ---
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import TokenConfigCard from '../components/settings/TokenConfigCard.astro';
 import ModelConfigCard from '../components/settings/ModelConfigCard.astro';
 
 // Read project_id from search params on the server-side
@@ -16,7 +15,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
     </div>
 
     <div class='settings-content'>
-      <TokenConfigCard />
       <ModelConfigCard />
     </div>
   </div>
@@ -25,128 +23,13 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
 <script is:inline>
   document.addEventListener('alpine:init', () => {
     Alpine.data('settingsPage', () => ({
-      providerConfigs: [
-        {
-          id: 'anthropic',
-          name: 'Anthropic (Claude)',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://console.anthropic.com/settings/keys',
-        },
-        {
-          id: 'openai',
-          name: 'OpenAI',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://platform.openai.com/api-keys',
-        },
-        {
-          id: 'google',
-          name: 'Google AI (Gemini)',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://aistudio.google.com/app/apikey',
-        },
-        {
-          id: 'x-ai',
-          name: 'xAI (Grok)',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://console.x.ai',
-        },
-        {
-          id: 'cohere',
-          name: 'Cohere',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://dashboard.cohere.com/api-keys',
-        },
-        {
-          id: 'mistral',
-          name: 'Mistral AI',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://console.mistral.ai/api-keys/',
-        },
-        {
-          id: 'amazon',
-          name: 'Amazon Bedrock',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Configure AWS credentials via AWS CLI or environment variables',
-        },
-        {
-          id: 'deepseek',
-          name: 'DeepSeek',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://platform.deepseek.com/api_keys',
-        },
-        {
-          id: 'nvidia',
-          name: 'NVIDIA',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://ngc.nvidia.com/setup/api-key',
-        },
-        {
-          id: 'nebius',
-          name: 'Nebius',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://nebius.ai/studio/settings/api-keys',
-        },
-        {
-          id: 'qwen',
-          name: 'Qwen (阿里云)',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from DashScope or use local Ollama models',
-        },
-        {
-          id: 'minimax',
-          name: 'MiniMax',
-          token: '',
-          hasToken: false,
-          showToken: false,
-          hint: 'Get your API key from https://platform.minimaxi.com/',
-        },
-      ],
       modelStatusList: [],
       loadingModels: true,
       selectedModelId: '',
 
       init() {
-        this.loadTokens();
         this.loadSelectedModel();
         this.loadModels();
-      },
-
-      async loadTokens() {
-        try {
-          const res = await fetch('/api/settings/tokens');
-          if (res.ok) {
-            const tokens = await res.json();
-            this.providerConfigs.forEach((provider) => {
-              if (tokens[provider.id]) {
-                provider.hasToken = tokens[provider.id].hasToken;
-              }
-            });
-          }
-        } catch (e) {
-          console.error('Failed to load tokens:', e);
-        }
       },
 
       async loadSelectedModel() {
@@ -170,15 +53,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       },
 
       async selectModel(model) {
-        if (!model.configured && model.tier === 'paid') {
-          window.notify(
-            'Please configure API token for this provider first',
-            'error',
-            'fa-key',
-          );
-          return;
-        }
-
         try {
           const res = await fetch('/api/settings/selected', {
             method: 'POST',
@@ -230,77 +104,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       },
 
       async refreshModels() {
-        await this.loadTokens();
         await this.loadModels();
-      },
-
-      async saveToken(provider) {
-        if (!provider.token) return;
-
-        try {
-          const res = await fetch('/api/settings/tokens', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              provider: provider.id,
-              token: provider.token,
-            }),
-          });
-
-          if (res.ok) {
-            provider.hasToken = true;
-            window.notify(`${provider.name} token saved`, 'success', 'fa-key');
-            this.loadModels();
-          } else {
-            window.notify(
-              'Failed to save token',
-              'error',
-              'fa-circle-exclamation',
-            );
-          }
-        } catch (e) {
-          console.error('Failed to save token:', e);
-          window.notify(
-            'Failed to save token',
-            'error',
-            'fa-circle-exclamation',
-          );
-        }
-      },
-
-      async clearToken(provider) {
-        try {
-          const res = await fetch(
-            `/api/settings/tokens?provider=${provider.id}`,
-            {
-              method: 'DELETE',
-            },
-          );
-
-          if (res.ok) {
-            provider.token = '';
-            provider.hasToken = false;
-            window.notify(
-              `${provider.name} token cleared`,
-              'warning',
-              'fa-key',
-            );
-            this.loadModels();
-          } else {
-            window.notify(
-              'Failed to clear token',
-              'error',
-              'fa-circle-exclamation',
-            );
-          }
-        } catch (e) {
-          console.error('Failed to clear token:', e);
-          window.notify(
-            'Failed to clear token',
-            'error',
-            'fa-circle-exclamation',
-          );
-        }
       },
     }));
   });

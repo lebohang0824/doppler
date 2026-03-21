@@ -50,16 +50,6 @@ const Log = defineTable({
   },
 });
 
-const ApiToken = defineTable({
-  columns: {
-    id: column.text({ primaryKey: true }),
-    provider: column.text({ unique: true }), // anthropic, openai, google, etc.
-    token: column.text(), // encrypted or plain
-    created_at: column.date({ default: NOW }),
-    updated_at: column.date({ default: NOW }),
-  },
-});
-
 const Model = defineTable({
   columns: {
     id: column.text({ primaryKey: true }), // e.g., "anthropic/claude-sonnet-4"
@@ -88,7 +78,6 @@ export default defineDb({
     Issue,
     Report,
     Log,
-    ApiToken,
     Model,
     SelectedModel,
   },

@@ -359,10 +359,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
               <template x-if='modalFilteredModels.length === 0'>
                 <div class='no-models'>
                   <p>No models available for this filter.</p>
-                  <p x-show='modalSelectedProvider === "opencode"'>
-                    Configure API tokens in <a href='/settings'>Settings</a> to see
-                    paid models.
-                  </p>
                 </div>
               </template>
               <div class='model-list'>
@@ -401,11 +397,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           </div>
         </div>
         <div class='modal-footer'>
-          <a
-            href='/settings'
-            class='btn btn-secondary'>
-            <i class='fa-solid fa-gear'></i> Configure API Tokens
-          </a>
           <div class='selected-preview'>
             <span>Selected:</span>
             <strong x-text='modalSelectedModel ? modalSelectedModel.name : ""'></strong>
@@ -449,7 +440,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       opencodeModels: [],
       selectedModel: null,
       modalSelectedModel: null,
-      configuredProviders: [],
       loadingModel: true,
 
       get availableProviders() {
@@ -469,7 +459,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         if (this.selectedProvider !== 'opencode') {
           return this.geminiModels;
         }
-        let models = this.opencodeModels.filter((m) => m.configured);
+        let models = this.opencodeModels;
         if (this.modelFilterTier !== 'all') {
           models = models.filter((m) => m.tier === this.modelFilterTier);
         }
@@ -481,7 +471,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         if (provider !== 'opencode') {
           return this.geminiModels;
         }
-        let models = this.opencodeModels.filter((m) => m.configured);
+        let models = this.opencodeModels;
         if (this.modelFilterTier !== 'all') {
           models = models.filter((m) => m.tier === this.modelFilterTier);
         }
@@ -513,7 +503,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         Promise.all([
           this.checkCliAvailability(),
           this.loadModels(),
-          this.loadTokens(),
         ]).then(() => {
           return this.loadSelectedModel();
         }).then(() => {
@@ -570,20 +559,6 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         }
       },
 
-      async loadTokens() {
-        try {
-          const res = await fetch('/api/settings/tokens');
-          if (res.ok) {
-            const tokens = await res.json();
-            this.configuredProviders = Object.entries(tokens)
-              .filter(([_, data]) => data.hasToken)
-              .map(([provider]) => provider);
-          }
-        } catch (e) {
-          console.error('Failed to load tokens:', e);
-        }
-      },
-
       async saveSelectedModel() {
         if (!this.selectedModel) return;
         try {
@@ -618,14 +593,53 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         }
       },
 
-      selectModel(model) {
-        this.modalSelectedModel = model;
-        this.modalSelectedProvider = model.provider === 'gemini' ? 'gemini' : 'opencode';
+      async selectModel(model) {
+        if (model.tier === 'paid') {
+          window.notify(
+            'This is a paid model. Please be aware of potential costs.',
+            'info',
+            'fa-info-circle',
+          );
+        }
+
+        try {
+          const res = await fetch('/api/settings/selected', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              provider: model.provider,
+              model_id: model.id,
+            }),
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            this.modalSelectedModel = { id: data.model_id, name: data.model_id, provider: data.provider }; // Update modalSelectedModel with full details
+            window.notify(
+              `Model ${model.name} selected`,
+              'success',
+              'fa-check-circle',
+            );
+          } else {
+            window.notify(
+              'Failed to select model',
+              'error',
+              'fa-circle-exclamation',
+            );
+          }
+        } catch (e) {
+          console.error('Failed to select model:', e);
+          window.notify(
+            'Failed to select model',
+            'error',
+            'fa-circle-exclamation',
+          );
+        }
       },
 
       getModels(provider) {
         if (provider === 'opencode') {
-          return this.opencodeModels.filter(m => m.configured);
+          return this.opencodeModels;
         }
         return this.geminiModels;
       },
