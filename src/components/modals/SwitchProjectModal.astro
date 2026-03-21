@@ -1,0 +1,118 @@
+<div
+  class='modal-overlay'
+  x-show='modals.switchProject'
+  style='display: none;'
+  x-transition.opacity>
+  <div
+    class='modal'
+    @click.away='modals.switchProject = false'>
+    <div class='modal-header'>
+      <h2>Switch Project</h2>
+      <button
+        @click='modals.switchProject = false'
+        class='close-btn'>
+        <i class='fa-solid fa-xmark'></i>
+      </button>
+    </div>
+    <div class='modal-body'>
+      <div class='project-list'>
+        <template
+          x-for='project in projects'
+          :key='project.id'>
+          <button
+            class='project-option'
+            :class="{ 'active': activeProject && activeProject.id === project.id }"
+            @click='switchProject(project)'>
+            <span
+              class='project-name'
+              x-text='project.name'
+            ></span>
+            <span
+              class='project-dir'
+              x-text='project.directory'
+            ></span>
+          </button>
+        </template>
+        <template x-if='projects.length === 0'>
+          <div class='no-projects'>
+            <p>No projects found.</p>
+            <a
+              href='/projects'
+              class='btn btn-small'>
+              <i class='fa-solid fa-plus'></i>
+              <span>Create New Project</span>
+            </a>
+          </div>
+        </template>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+
+  /* Project List in Modal */
+  .project-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .project-option {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    opacity: 0.8;
+    border-radius: 6px;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    color: var(--text-color);
+  }
+
+  .project-option:hover {
+    background-color: var(--bg-color);
+    border-color: var(--primary-color);
+    opacity: 1;
+  }
+
+  .project-option.active {
+    border-color: var(--accent-color);
+    background-color: var(--primary-color);
+    color: white;
+    opacity: 1;
+    border-width: 2px;
+  }
+
+  .project-name {
+    font-weight: bold;
+  }
+
+  .project-dir {
+    font-size: 0.8rem;
+    color: var(--accent-color);
+  }
+
+  .no-projects {
+    text-align: center;
+    padding: 2rem;
+  }
+
+  .no-projects p {
+    margin-bottom: 1rem;
+    color: var(--accent-color);
+  }
+
+  .modal .modal-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+</style>

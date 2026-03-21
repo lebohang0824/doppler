@@ -1,4 +1,7 @@
 ---
+import CliRequiredModal from '../components/modals/CliRequiredModal.astro';
+import ModelSelectorModal from '../components/modals/ModelSelectorModal.astro';
+import SwitchProjectModal from '../components/modals/SwitchProjectModal.astro';
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 
 // Read project_id from search params on the server-side
@@ -31,7 +34,9 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           <span x-show='loadingModel'>Loading...</span>
           <template x-if='!loadingModel'>
             <span>
-              <span x-text='selectedProvider === "gemini" ? "Gemini" : "Opencode"'></span>
+              <span
+                x-text='selectedProvider === "gemini" ? "Gemini" : "Opencode"'
+              ></span>
               <span x-text='selectedModel ? selectedModel.name : ""'></span>
             </span>
           </template>
@@ -159,256 +164,9 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       </div>
     </div>
 
-    <!-- Switch Project Modal -->
-    <div
-      class='modal-overlay'
-      x-show='modals.switchProject'
-      style='display: none;'
-      x-transition.opacity>
-      <div
-        class='modal'
-        @click.away='modals.switchProject = false'>
-        <div class='modal-header'>
-          <h2>Switch Project</h2>
-          <button
-            @click='modals.switchProject = false'
-            class='close-btn'>
-            <i class='fa-solid fa-xmark'></i>
-          </button>
-        </div>
-        <div class='modal-body'>
-          <div class='project-list'>
-            <template
-              x-for='project in projects'
-              :key='project.id'>
-              <button
-                class='project-option'
-                :class="{ 'active': activeProject && activeProject.id === project.id }"
-                @click='switchProject(project)'>
-                <span
-                  class='project-name'
-                  x-text='project.name'
-                ></span>
-                <span
-                  class='project-dir'
-                  x-text='project.directory'
-                ></span>
-              </button>
-            </template>
-            <template x-if='projects.length === 0'>
-              <div class='no-projects'>
-                <p>No projects found.</p>
-                <a
-                  href='/projects'
-                  class='btn btn-small'>
-                  <i class='fa-solid fa-plus'></i>
-                  <span>Create New Project</span>
-                </a>
-              </div>
-            </template>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <!-- CLI Not Installed Modal -->
-    <div
-      class='modal-overlay'
-      x-show='modals.cliRequired'
-      x-cloak
-      style='display: none;'
-      x-transition.opacity>
-      <div class='modal'>
-        <div class='modal-header'>
-          <h2><i class='fa-solid fa-terminal'></i> AI CLI Required</h2>
-        </div>
-        <div class='modal-body'>
-          <p class='modal-intro'>
-            To use this application, you need to install at least one AI CLI
-            tool.
-          </p>
-
-          <div class='cli-options'>
-            <div class='cli-option'>
-              <div class='cli-icon'>
-                <i class='fa-solid fa-robot'></i>
-              </div>
-              <div class='cli-info'>
-                <h3>Gemini CLI</h3>
-                <p>Google's AI coding assistant CLI</p>
-                <a
-                  href='https://ai.google.dev/gemini-api/docs/gemini-cli'
-                  target='_blank'
-                  class='install-link'>
-                  <i class='fa-solid fa-arrow-up-right-from-square'></i>
-                  View Installation Guide
-                </a>
-              </div>
-              <div
-                class='cli-status'
-                x-show='!cliAvailable.gemini'>
-                <span class='not-installed'>Not Installed</span>
-              </div>
-              <div
-                class='cli-status'
-                x-show='cliAvailable.gemini'>
-                <span class='installed'
-                  ><i class='fa-solid fa-check'></i> Ready</span
-                >
-              </div>
-            </div>
-
-            <div class='cli-option'>
-              <div class='cli-icon'>
-                <i class='fa-solid fa-robot'></i>
-              </div>
-              <div class='cli-info'>
-                <h3>Opencode CLI</h3>
-                <p>AI coding agent with multi-model support</p>
-                <a
-                  href='https://opencode.ai'
-                  target='_blank'
-                  class='install-link'>
-                  <i class='fa-solid fa-arrow-up-right-from-square'></i>
-                  View Installation Guide
-                </a>
-              </div>
-              <div
-                class='cli-status'
-                x-show='!cliAvailable.opencode'>
-                <span class='not-installed'>Not Installed</span>
-              </div>
-              <div
-                class='cli-status'
-                x-show='cliAvailable.opencode'>
-                <span class='installed'
-                  ><i class='fa-solid fa-check'></i> Ready</span
-                >
-              </div>
-            </div>
-          </div>
-
-          <p class='modal-note'>
-            <i class='fa-solid fa-info-circle'></i>
-            After installing, refresh the page to continue.
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- Model Selector Modal -->
-    <div
-      class='modal-overlay'
-      x-show='modals.modelSelector'
-      x-cloak
-      style='display: none;'
-      x-transition.opacity>
-      <div
-        class='modal modal-wide'
-        @click.away='modals.modelSelector = false'>
-        <div class='modal-header'>
-          <h2><i class='fa-solid fa-robot'></i> Select AI Model</h2>
-          <button
-            @click='modals.modelSelector = false'
-            class='close-btn'>
-            <i class='fa-solid fa-xmark'></i>
-          </button>
-        </div>
-        <div class='modal-body'>
-          <div class='model-modal-content'>
-            <div class='model-sidebar'>
-              <div class='provider-section-title'>Provider</div>
-              <button
-                class='sidebar-btn'
-                :class="{ 'active': modalSelectedProvider === 'gemini' }"
-                @click='selectProvider("gemini")'>
-                <i class='fa-solid fa-robot'></i> Gemini CLI
-              </button>
-              <button
-                class='sidebar-btn'
-                :class="{ 'active': modalSelectedProvider === 'opencode' }"
-                @click='selectProvider("opencode")'>
-                <i class='fa-solid fa-robot'></i> Opencode CLI
-              </button>
-
-              <template x-if='modalSelectedProvider === "opencode"'>
-                <div>
-                  <div class='provider-section-title'>Filter by Tier</div>
-                  <button
-                    class='sidebar-btn'
-                    :class="{ 'active': modelFilterTier === 'all' }"
-                    @click='modelFilterTier = "all"'>
-                    <i class='fa-solid fa-list'></i> All Models
-                  </button>
-                  <button
-                    class='sidebar-btn'
-                    :class="{ 'active': modelFilterTier === 'free' }"
-                    @click='modelFilterTier = "free"'>
-                    <i class='fa-solid fa-gift'></i> Free Only
-                  </button>
-                  <button
-                    class='sidebar-btn'
-                    :class="{ 'active': modelFilterTier === 'paid' }"
-                    @click='modelFilterTier = "paid"'>
-                    <i class='fa-solid fa-credit-card'></i> Paid Only
-                  </button>
-                </div>
-              </template>
-            </div>
-            <div class='model-list-container'>
-              <template x-if='modalFilteredModels.length === 0'>
-                <div class='no-models'>
-                  <p>No models available for this filter.</p>
-                </div>
-              </template>
-              <div class='model-list'>
-                <template
-                  x-for='model in modalFilteredModels'
-                  :key='model.id'>
-                  <button
-                    class='model-card'
-                    :class="{ 'active': modalSelectedModel && modalSelectedModel.id === model.id }"
-                    @click='selectModel(model)'>
-                    <div class='model-card-header'>
-                      <span
-                        class='model-name'
-                        x-text='model.name'
-                      ></span>
-                      <div class='model-badges'>
-                        <template x-if="model.tier === 'free'">
-                          <span class='model-badge free'>Free</span>
-                        </template>
-                        <template x-if="model.tier === 'paid'">
-                          <span class='model-badge paid'>Paid</span>
-                        </template>
-                        <template x-if="modalSelectedModel && modalSelectedModel.id === model.id">
-                          <span class='model-badge selected'><i class='fa-solid fa-check'></i></span>
-                        </template>
-                      </div>
-                    </div>
-                    <div
-                      class='model-provider'
-                      x-text='model.provider || "gemini"'
-                    ></div>
-                  </button>
-                </template>
-              </div>
-            </div>
-          </div>
-        </div>
-        <div class='modal-footer'>
-          <div class='selected-preview'>
-            <span>Selected:</span>
-            <strong x-text='modalSelectedModel ? modalSelectedModel.name : ""'></strong>
-          </div>
-          <button
-            @click='saveAndClose()'
-            class='btn'>
-            <i class='fa-solid fa-check'></i> Done
-          </button>
-        </div>
-      </div>
-    </div>
+    <SwitchProjectModal />
+    <CliRequiredModal />
+    <ModelSelectorModal />
   </div>
 </DashboardLayout>
 
@@ -500,24 +258,23 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       },
 
       init() {
-        Promise.all([
-          this.checkCliAvailability(),
-          this.loadModels(),
-        ]).then(() => {
-          return this.loadSelectedModel();
-        }).then(() => {
-          this.initProvider();
-          this.fetchProjects().then(() => {
-            const urlParams = new URLSearchParams(window.location.search);
-            const projectId = urlParams.get('project_id');
-            if (projectId) {
-              const project = this.projects.find((p) => p.id === projectId);
-              if (project) {
-                this.switchProject(project, false);
+        Promise.all([this.checkCliAvailability(), this.loadModels()])
+          .then(() => {
+            return this.loadSelectedModel();
+          })
+          .then(() => {
+            this.initProvider();
+            this.fetchProjects().then(() => {
+              const urlParams = new URLSearchParams(window.location.search);
+              const projectId = urlParams.get('project_id');
+              if (projectId) {
+                const project = this.projects.find((p) => p.id === projectId);
+                if (project) {
+                  this.switchProject(project, false);
+                }
               }
-            }
+            });
           });
-        });
       },
 
       async loadModels() {
@@ -525,8 +282,8 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           const res = await fetch('/api/settings/models');
           if (res.ok) {
             const models = await res.json();
-            this.geminiModels = models.filter(m => m.provider === 'gemini');
-            this.opencodeModels = models.filter(m => m.provider !== 'gemini');
+            this.geminiModels = models.filter((m) => m.provider === 'gemini');
+            this.opencodeModels = models.filter((m) => m.provider !== 'gemini');
           }
         } catch (e) {
           console.error('Failed to load models:', e);
@@ -540,16 +297,18 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
           if (res.ok) {
             const data = await res.json();
             this.selectedProvider = data.provider;
-            
+
             const allModels = [...this.geminiModels, ...this.opencodeModels];
-            const savedModel = allModels.find(m => m.id === data.model_id);
-            
+            const savedModel = allModels.find((m) => m.id === data.model_id);
+
             if (savedModel) {
               this.selectedModel = savedModel;
-              this.selectedProvider = savedModel.provider === 'gemini' ? 'gemini' : 'opencode';
+              this.selectedProvider =
+                savedModel.provider === 'gemini' ? 'gemini' : 'opencode';
             } else if (data.model) {
               this.selectedModel = data.model;
-              this.selectedProvider = data.model.provider === 'gemini' ? 'gemini' : 'opencode';
+              this.selectedProvider =
+                data.model.provider === 'gemini' ? 'gemini' : 'opencode';
             }
             this.loadingModel = false;
           }
@@ -614,7 +373,11 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
 
           if (res.ok) {
             const data = await res.json();
-            this.modalSelectedModel = { id: data.model_id, name: data.model_id, provider: data.provider }; // Update modalSelectedModel with full details
+            this.modalSelectedModel = {
+              id: data.model_id,
+              name: data.model_id,
+              provider: data.provider,
+            }; // Update modalSelectedModel with full details
             window.notify(
               `Model ${model.name} selected`,
               'success',
@@ -658,11 +421,15 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
             this.selectedModel = models[0];
           }
         } else {
-          const modelProvider = this.selectedModel.provider === 'gemini' ? 'gemini' : 'opencode';
+          const modelProvider =
+            this.selectedModel.provider === 'gemini' ? 'gemini' : 'opencode';
           if (this.selectedProvider !== modelProvider) {
             this.selectedProvider = modelProvider;
             const models = this.getModels(this.selectedProvider);
-            if (models.length > 0 && !models.find(m => m.id === this.selectedModel.id)) {
+            if (
+              models.length > 0 &&
+              !models.find((m) => m.id === this.selectedModel.id)
+            ) {
               this.selectedModel = models[0];
             }
           }

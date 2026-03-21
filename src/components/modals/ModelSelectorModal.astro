@@ -1,0 +1,349 @@
+<div
+  class='modal-overlay'
+  x-show='modals.modelSelector'
+  x-cloak
+  style='display: none;'
+  x-transition.opacity>
+  <div
+    class='modal modal-wide'
+    @click.away='modals.modelSelector = false'>
+    <div class='modal-header'>
+      <h2><i class='fa-solid fa-robot'></i> Select AI Model</h2>
+      <button
+        @click='modals.modelSelector = false'
+        class='close-btn'>
+        <i class='fa-solid fa-xmark'></i>
+      </button>
+    </div>
+    <div class='modal-body'>
+      <div class='model-modal-content'>
+        <div class='model-sidebar'>
+          <div class='provider-section-title'>Provider</div>
+          <button
+            class='sidebar-btn'
+            :class="{ 'active': modalSelectedProvider === 'gemini' }"
+            @click='selectProvider("gemini")'>
+            <i class='fa-solid fa-robot'></i> Gemini CLI
+          </button>
+          <button
+            class='sidebar-btn'
+            :class="{ 'active': modalSelectedProvider === 'opencode' }"
+            @click='selectProvider("opencode")'>
+            <i class='fa-solid fa-robot'></i> Opencode CLI
+          </button>
+
+          <template x-if='modalSelectedProvider === "opencode"'>
+            <div>
+              <div class='provider-section-title'>Filter by Tier</div>
+              <button
+                class='sidebar-btn'
+                :class="{ 'active': modelFilterTier === 'all' }"
+                @click='modelFilterTier = "all"'>
+                <i class='fa-solid fa-list'></i> All Models
+              </button>
+              <button
+                class='sidebar-btn'
+                :class="{ 'active': modelFilterTier === 'free' }"
+                @click='modelFilterTier = "free"'>
+                <i class='fa-solid fa-gift'></i> Free Only
+              </button>
+              <button
+                class='sidebar-btn'
+                :class="{ 'active': modelFilterTier === 'paid' }"
+                @click='modelFilterTier = "paid"'>
+                <i class='fa-solid fa-credit-card'></i> Paid Only
+              </button>
+            </div>
+          </template>
+        </div>
+        <div class='model-list-container'>
+          <template x-if='modalFilteredModels.length === 0'>
+            <div class='no-models'>
+              <p>No models available for this filter.</p>
+              <p x-show='modalSelectedProvider === "opencode"'>
+                Configure API tokens in <a href='/settings'>Settings</a> to see paid
+                models.
+              </p>
+            </div>
+          </template>
+          <div class='model-list'>
+            <template
+              x-for='model in modalFilteredModels'
+              :key='model.id'>
+              <button
+                class='model-card'
+                :class="{ 'active': modalSelectedModel && modalSelectedModel.id === model.id }"
+                @click='selectModel(model)'>
+                <div class='model-card-header'>
+                  <span
+                    class='model-name'
+                    x-text='model.name'
+                  ></span>
+                  <div class='model-badges'>
+                    <template x-if="model.tier === 'free'">
+                      <span class='model-badge free'>Free</span>
+                    </template>
+                    <template x-if="model.tier === 'paid'">
+                      <span class='model-badge paid'>Paid</span>
+                    </template>
+                    <template
+                      x-if='modalSelectedModel && modalSelectedModel.id === model.id'>
+                      <span class='model-badge selected'
+                        ><i class='fa-solid fa-check'></i></span
+                      >
+                    </template>
+                  </div>
+                </div>
+                <div
+                  class='model-provider'
+                  x-text='model.provider || "gemini"'
+                ></div>
+              </button>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class='modal-footer'>
+      <a
+        href='/settings'
+        class='btn btn-secondary'>
+        <i class='fa-solid fa-gear'></i> Configure API Tokens
+      </a>
+      <div class='selected-preview'>
+        <span>Selected:</span>
+        <strong x-text='modalSelectedModel ? modalSelectedModel.name : ""'
+        ></strong>
+      </div>
+      <button
+        @click='saveAndClose()'
+        class='btn'>
+        <i class='fa-solid fa-check'></i> Save
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+
+  .modal .modal-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .modal-wide {
+    max-width: 800px;
+    width: 90vw;
+  }
+
+  .model-modal-content {
+    display: flex;
+    gap: 1.5rem;
+    min-height: 400px;
+  }
+
+  .model-sidebar {
+    width: 180px;
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .provider-section-title {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: var(--accent-color);
+    font-weight: bold;
+    padding: 0.5rem 0.25rem;
+    margin-bottom: 0.25rem;
+  }
+
+  .sidebar-btn {
+    width: 100%;
+    text-align: left;
+    padding: 0.75rem 1rem;
+    background: white;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-color);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    margin-bottom: 5px;
+  }
+
+  .sidebar-btn:hover {
+    background: var(--bg-color);
+    border-color: var(--primary-color);
+  }
+
+  .sidebar-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+  }
+
+  .model-list-container {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 450px;
+  }
+
+  .model-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .model-card {
+    width: 100%;
+    text-align: left;
+    padding: 1rem;
+    background: white;
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .model-card:hover {
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+
+  .model-card.active {
+    border-color: var(--primary-color);
+    background: linear-gradient(135deg, #f0f9f6 0%, #fff 100%);
+    box-shadow: 0 0 0 2px var(--primary-color);
+  }
+
+  .model-card.active .model-name {
+    color: var(--primary-color);
+  }
+
+  .model-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .model-name {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.95rem;
+  }
+
+  .model-badge {
+    font-size: 0.65rem;
+    padding: 0.15rem 0.5rem;
+    border-radius: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+  }
+
+  .model-badge.free {
+    background: #dcfce7;
+    color: #16a34a;
+  }
+
+  .model-badge.paid {
+    background: #fef3c7;
+    color: #d97706;
+  }
+
+  .model-badge.selected {
+    background: var(--primary-color);
+    color: white;
+    padding: 0.2rem 0.4rem;
+  }
+
+  .model-badges {
+    display: flex;
+    gap: 0.25rem;
+    align-items: center;
+  }
+
+  .model-provider {
+    font-size: 0.75rem;
+    color: var(--accent-color);
+    text-transform: lowercase;
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-color);
+    border-radius: 0 0 8px 8px;
+  }
+
+  .selected-preview {
+    font-size: 0.9rem;
+    color: var(--text-color);
+  }
+
+  .selected-preview strong {
+    margin-right: 10px;
+    color: var(--primary-color);
+  }
+
+  .no-models {
+    text-align: center;
+    padding: 2rem;
+    color: var(--accent-color);
+  }
+
+  .no-models p {
+    margin: 0.5rem 0;
+  }
+
+  .no-models a {
+    color: var(--primary-color);
+    font-weight: 600;
+  }
+
+  .modal-footer .btn-secondary {
+    margin-right: auto;
+  }
+
+  @media (max-width: 768px) {
+    .model-modal-content {
+      flex-direction: column;
+    }
+
+    .model-sidebar {
+      width: 100%;
+      flex-direction: row;
+      flex-wrap: wrap;
+    }
+
+    .model-list {
+      grid-template-columns: 1fr;
+    }
+
+    .modal-footer {
+      flex-wrap: wrap;
+      gap: 0.75rem;
+    }
+
+    .modal-footer .btn-secondary {
+      margin-right: 0;
+      width: 100%;
+      justify-content: center;
+    }
+  }
+</style>

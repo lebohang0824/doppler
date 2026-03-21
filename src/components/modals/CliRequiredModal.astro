@@ -1,0 +1,186 @@
+<div
+  class='modal-overlay'
+  x-show='modals.cliRequired'
+  x-cloak
+  style='display: none;'
+  x-transition.opacity>
+  <div class='modal'>
+    <div class='modal-header'>
+      <h2><i class='fa-solid fa-terminal'></i> AI CLI Required</h2>
+    </div>
+    <div class='modal-body'>
+      <p class='modal-intro'>
+        To use this application, you need to install at least one AI CLI tool.
+      </p>
+
+      <div class='cli-options'>
+        <div class='cli-option'>
+          <div class='cli-icon'>
+            <i class='fa-solid fa-robot'></i>
+          </div>
+          <div class='cli-info'>
+            <h3>Gemini CLI</h3>
+            <p>Google's AI coding assistant CLI</p>
+            <a
+              href='https://ai.google.dev/gemini-api/docs/gemini-cli'
+              target='_blank'
+              class='install-link'>
+              <i class='fa-solid fa-arrow-up-right-from-square'></i>
+              View Installation Guide
+            </a>
+          </div>
+          <div
+            class='cli-status'
+            x-show='!cliAvailable.gemini'>
+            <span class='not-installed'>Not Installed</span>
+          </div>
+          <div
+            class='cli-status'
+            x-show='cliAvailable.gemini'>
+            <span class='installed'
+              ><i class='fa-solid fa-check'></i> Ready</span
+            >
+          </div>
+        </div>
+
+        <div class='cli-option'>
+          <div class='cli-icon'>
+            <i class='fa-solid fa-robot'></i>
+          </div>
+          <div class='cli-info'>
+            <h3>Opencode CLI</h3>
+            <p>AI coding agent with multi-model support</p>
+            <a
+              href='https://opencode.ai'
+              target='_blank'
+              class='install-link'>
+              <i class='fa-solid fa-arrow-up-right-from-square'></i>
+              View Installation Guide
+            </a>
+          </div>
+          <div
+            class='cli-status'
+            x-show='!cliAvailable.opencode'>
+            <span class='not-installed'>Not Installed</span>
+          </div>
+          <div
+            class='cli-status'
+            x-show='cliAvailable.opencode'>
+            <span class='installed'
+              ><i class='fa-solid fa-check'></i> Ready</span
+            >
+          </div>
+        </div>
+      </div>
+
+      <p class='modal-note'>
+        <i class='fa-solid fa-info-circle'></i>
+        After installing, refresh the page to continue.
+      </p>
+    </div>
+  </div>
+</div>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+
+  .modal-intro {
+    text-align: center;
+    color: var(--text-color);
+    margin-bottom: 1.5rem;
+    font-size: 1rem;
+  }
+
+  .cli-options {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .cli-option {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background: var(--bg-color);
+  }
+
+  .cli-icon {
+    font-size: 2rem;
+    color: var(--primary-color);
+    width: 50px;
+    text-align: center;
+  }
+
+  .cli-info {
+    flex: 1;
+  }
+
+  .cli-info h3 {
+    margin: 0 0 0.25rem 0;
+    color: var(--text-color);
+    font-size: 1.1rem;
+  }
+
+  .cli-info p {
+    margin: 0 0 0.5rem 0;
+    color: var(--accent-color);
+    font-size: 0.85rem;
+  }
+
+  .install-link {
+    color: var(--primary-color);
+    text-decoration: none;
+    font-size: 0.85rem;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .install-link:hover {
+    text-decoration: underline;
+  }
+
+  .cli-status {
+    min-width: 100px;
+    text-align: right;
+  }
+
+  .cli-status .not-installed {
+    color: #e74c3c;
+    font-size: 0.8rem;
+    font-weight: 600;
+  }
+
+  .cli-status .installed {
+    color: #2ecc71;
+    font-size: 0.8rem;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .modal-note {
+    margin-top: 1.5rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+    text-align: center;
+    color: var(--accent-color);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+
+  .modal .modal-header h2 {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+</style>
