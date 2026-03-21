@@ -7,13 +7,13 @@ const projectId = Astro.url.searchParams.get('project_id');
 ---
 
 <DashboardLayout title='Projects'>
-  <div x-data="projects()">
+  <div x-data='projects()'>
     <div class='header'>
       <h1>Projects</h1>
       <button
         class='btn'
         @click='openCreate()'>
-        <i class="fa-solid fa-plus"></i>
+        <i class='fa-solid fa-plus'></i>
         <span>Add Project</span>
       </button>
     </div>
@@ -27,12 +27,15 @@ const projectId = Astro.url.searchParams.get('project_id');
             <div
               @click={`openEdit(${JSON.stringify(project)})`}
               class={`project-card ${project.id === projectId ? 'active' : ''}`}
-              style="cursor: pointer;">
+              style='cursor: pointer;'>
               <div class='card-header'>
                 <h3>{project.name}</h3>
                 {project.id === projectId && (
                   <span class='check-icon'>
-                    <i class="fa-solid fa-circle-check" style="color: #2ecc71; font-size: 1.25rem;"></i>
+                    <i
+                      class='fa-solid fa-circle-check'
+                      style='color: #2ecc71; font-size: 1.25rem;'
+                    />
                   </span>
                 )}
               </div>
@@ -41,7 +44,7 @@ const projectId = Astro.url.searchParams.get('project_id');
                 <span
                   class='directory'
                   title={project.directory}>
-                  <i class="fa-solid fa-folder-open"></i> {project.directory}
+                  <i class='fa-solid fa-folder-open' /> {project.directory}
                 </span>
               </div>
             </div>
@@ -60,24 +63,29 @@ const projectId = Astro.url.searchParams.get('project_id');
         class='modal'
         @click.away='open = false'>
         <div class='modal-header'>
-          <h2 x-text="mode === 'create' ? 'Add New Project' : 'Project Details'"></h2>
+          <h2 x-text="mode === 'create' ? 'Add New Project' : 'Project Details'"
+          ></h2>
           <button
             @click='open = false'
             class='close-btn'>
-            <i class="fa-solid fa-xmark"></i>
+            <i class='fa-solid fa-xmark'></i>
           </button>
         </div>
         <form @submit.prevent='submit()'>
-          <div class='modal-body' style="position: relative;">
-            <button
+          <div
+            class='modal-body'
+            style='position: relative;'>
+            <div class='activate-btn-container'>
+              <button
                 x-show="mode === 'edit'"
                 type='button'
                 class='btn btn-success btn-compact activate-top-btn'
                 @click='activateProject()'
-                title="Activate Project">
-                <i class="fa-solid fa-bolt"></i>
-            </button>
-
+                title='Activate Project'>
+                <i class='fa-solid fa-bolt'></i>
+                <span>Activate</span>
+              </button>
+            </div>
             <div class='form-group'>
               <label for='name'>Project Name</label>
               <input
@@ -115,35 +123,41 @@ const projectId = Astro.url.searchParams.get('project_id');
           </div>
 
           <div class='modal-actions-wrapper'>
-              <div x-show="mode === 'edit'" class="danger-zone">
-                  <label class="toggle-switch">
-                      <input type="checkbox" x-model="confirmDelete">
-                      <span class="slider"></span>
-                  </label>
-                  <button
-                    type='button'
-                    class='btn btn-danger btn-small'
-                    :disabled='!confirmDelete'
-                    @click='deleteProject()'>
-                    <i class="fa-solid fa-trash"></i>
-                    <span>Delete</span>
-                  </button>
-              </div>
-              <div class="right-actions">
-                  <button
-                    type='button'
-                    class='btn btn-secondary'
-                    @click='open = false'>
-                    <i class="fa-solid fa-xmark"></i>
-                    <span>Cancel</span>
-                  </button>
-                  <button
-                    type='submit'
-                    class='btn'>
-                    <i class="fa-solid fa-floppy-disk"></i>
-                    <span x-text="mode === 'create' ? 'Create Project' : 'Save Changes'"></span>
-                  </button>
-              </div>
+            <div
+              x-show="mode === 'edit'"
+              class='danger-zone'>
+              <label class='toggle-switch'>
+                <input
+                  type='checkbox'
+                  x-model='confirmDelete'
+                />
+                <span class='slider'></span>
+              </label>
+              <button
+                type='button'
+                class='btn btn-danger btn-small'
+                :disabled='!confirmDelete'
+                @click='deleteProject()'>
+                <i class='fa-solid fa-trash'></i>
+                <span>Delete</span>
+              </button>
+            </div>
+            <div x-show="mode !== 'edit'"></div>
+            <div class='right-actions'>
+              <button
+                type='button'
+                class='btn btn-secondary'
+                @click='open = false'>
+                <i class='fa-solid fa-xmark'></i>
+                <span>Cancel</span>
+              </button>
+              <button
+                type='submit'
+                class='btn'>
+                <i class='fa-solid fa-floppy-disk'></i>
+                <span>Save</span>
+              </button>
+            </div>
           </div>
         </form>
       </div>
@@ -162,7 +176,7 @@ const projectId = Astro.url.searchParams.get('project_id');
         id: '',
         name: '',
         description: '',
-        directory: ''
+        directory: '',
       },
       openCreate() {
         this.mode = 'create';
@@ -180,23 +194,32 @@ const projectId = Astro.url.searchParams.get('project_id');
       },
       async submit() {
         this.error = null;
-        const url = this.mode === 'create' ? '/api/projects' : `/api/projects/${this.projectForm.id}`;
+        const url =
+          this.mode === 'create'
+            ? '/api/projects'
+            : `/api/projects/${this.projectForm.id}`;
         const method = this.mode === 'create' ? 'POST' : 'PATCH';
-        
+
         try {
           const res = await fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(this.projectForm)
+            body: JSON.stringify(this.projectForm),
           });
-          
+
           if (res.ok) {
-            window.notify(this.mode === 'create' ? 'Project created' : 'Project updated', 'success', 'fa-circle-check');
+            window.notify(
+              this.mode === 'create' ? 'Project created' : 'Project updated',
+              'success',
+              'fa-circle-check',
+            );
             this.open = false;
             setTimeout(() => window.location.reload(), 1000);
           } else {
             const result = await res.json();
-            this.error = result.error || `Failed to ${this.mode === 'create' ? 'create' : 'update'} project`;
+            this.error =
+              result.error ||
+              `Failed to ${this.mode === 'create' ? 'create' : 'update'} project`;
             window.notify(this.error, 'error', 'fa-circle-exclamation');
           }
         } catch (e) {
@@ -207,13 +230,18 @@ const projectId = Astro.url.searchParams.get('project_id');
       },
       async deleteProject() {
         if (!this.confirmDelete) return;
-        if (!confirm('Are you sure you want to delete this project? This will delete all associated issues.')) return;
-        
+        if (
+          !confirm(
+            'Are you sure you want to delete this project? This will delete all associated issues.',
+          )
+        )
+          return;
+
         try {
           const res = await fetch(`/api/projects/${this.projectForm.id}`, {
-            method: 'DELETE'
+            method: 'DELETE',
           });
-          
+
           if (res.status === 204 || res.ok) {
             window.notify('Project deleted', 'success', 'fa-trash-can');
             this.open = false;
@@ -230,11 +258,15 @@ const projectId = Astro.url.searchParams.get('project_id');
         }
       },
       activateProject() {
-        window.notify('Project activated: ' + this.projectForm.name, 'info', 'fa-bolt');
+        window.notify(
+          'Project activated: ' + this.projectForm.name,
+          'info',
+          'fa-bolt',
+        );
         setTimeout(() => {
-            window.location.href = `/?project_id=${this.projectForm.id}`;
+          window.location.href = `/?project_id=${this.projectForm.id}`;
         }, 500);
-      }
+      },
     }));
   });
 </script>
@@ -313,41 +345,33 @@ const projectId = Astro.url.searchParams.get('project_id');
   }
 
   .modal-actions-wrapper {
-      padding: 1.5rem;
-      border-top: 1px solid var(--border-color);
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      background-color: var(--bg-color);
-      border-bottom-left-radius: 8px;
-      border-bottom-right-radius: 8px;
+    padding: 1.5rem;
+    border-top: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: var(--bg-color);
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
   }
 
   .right-actions {
-      display: flex;
-      gap: 1rem;
-  }
-
-  .activate-top-btn {
-      position: absolute;
-      top: 1rem;
-      right: 1.5rem;
-      padding: 0.4rem 0.6rem;
-      font-size: 0.9rem;
+    display: flex;
+    gap: 1rem;
   }
 
   .danger-zone {
-      display: flex;
-      align-items: center;
-      gap: 0.75rem;
-      padding: 0.5rem;
-      background: rgba(231, 76, 60, 0.05);
-      border-radius: 6px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.5rem;
+    background: rgba(231, 76, 60, 0.05);
+    border-radius: 6px;
   }
 
   .btn-small {
-      padding: 0.4rem 0.8rem;
-      font-size: 0.9rem;
+    padding: 0.4rem 0.8rem;
+    font-size: 0.9rem;
   }
 
   /* Toggle Switch */
@@ -372,19 +396,19 @@ const projectId = Astro.url.searchParams.get('project_id');
     right: 0;
     bottom: 0;
     background-color: #ccc;
-    transition: .4s;
+    transition: 0.4s;
     border-radius: 20px;
   }
 
   .slider:before {
     position: absolute;
-    content: "";
+    content: '';
     height: 14px;
     width: 14px;
     left: 3px;
     bottom: 3px;
     background-color: white;
-    transition: .4s;
+    transition: 0.4s;
     border-radius: 50%;
   }
 
@@ -394,5 +418,15 @@ const projectId = Astro.url.searchParams.get('project_id');
 
   input:checked + .slider:before {
     transform: translateX(20px);
+  }
+
+  .activate-btn-container {
+    text-align: right;
+  }
+  .activate-top-btn {
+    top: 1rem;
+    right: 1.5rem;
+    padding: 0.4rem 0.6rem;
+    font-size: 0.9rem;
   }
 </style>
