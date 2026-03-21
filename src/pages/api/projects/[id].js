@@ -1,4 +1,4 @@
-import { db, Project, Issue, Log, Report, eq, inArray } from 'astro:db';
+import { ProjectService } from '../../../lib/services/project-service.js';
 import { initializeWithFirstCommit } from '../../../lib/git-service.js';
 
 export const GET = async ({ params }) => {
@@ -11,11 +11,7 @@ export const GET = async ({ params }) => {
   }
 
   try {
-    const project = await db
-      .select()
-      .from(Project)
-      .where(eq(Project.id, id))
-      .get();
+    const project = await ProjectService.getById(id);
 
     if (!project) {
       return new Response(JSON.stringify({ error: 'Project not found' }), {
@@ -55,11 +51,7 @@ export const PATCH = async ({ params, request }) => {
     const body = await request.json();
     const { name, description, directory } = body;
 
-    const existingProject = await db
-      .select()
-      .from(Project)
-      .where(eq(Project.id, id))
-      .get();
+    const existingProject = await ProjectService.getById(id);
     if (!existingProject) {
       return new Response(JSON.stringify({ error: 'Project not found' }), {
         status: 404,
@@ -72,8 +64,9 @@ export const PATCH = async ({ params, request }) => {
     if (description !== undefined) updateData.description = description;
     if (directory !== undefined) updateData.directory = directory;
 
+    let updatedProject = existingProject;
     if (Object.keys(updateData).length > 0) {
-      await db.update(Project).set(updateData).where(eq(Project.id, id));
+      updatedProject = await ProjectService.update(id, updateData);
 
       if (directory !== undefined) {
         try {
@@ -83,12 +76,6 @@ export const PATCH = async ({ params, request }) => {
         }
       }
     }
-
-    const updatedProject = await db
-      .select()
-      .from(Project)
-      .where(eq(Project.id, id))
-      .get();
 
     return new Response(JSON.stringify(updatedProject), {
       status: 200,
@@ -112,28 +99,7 @@ export const DELETE = async ({ params }) => {
   }
 
   try {
-    // Get all issues for this project to delete their related logs and reports
-    const projectIssues = await db
-      .select({ id: Issue.id })
-      .from(Issue)
-      .where(eq(Issue.project_id, id));
-
-    const issueIds = projectIssues.map((issue) => issue.id);
-
-    if (issueIds.length > 0) {
-      // Delete Logs related to these issues
-      await db.delete(Log).where(inArray(Log.issue_id, issueIds));
-
-      // Delete Reports related to these issues
-      await db.delete(Report).where(inArray(Report.issue_id, issueIds));
-
-      // Delete the Issues
-      await db.delete(Issue).where(eq(Issue.project_id, id));
-    }
-
-    // Finally delete the project
-    await db.delete(Project).where(eq(Project.id, id));
-
+    await ProjectService.delete(id);
     return new Response(null, { status: 204 });
   } catch (error) {
     console.error('Error deleting project:', error);

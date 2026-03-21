@@ -1,4 +1,5 @@
-import { db, Issue, Log, SelectedModel, Model, eq } from 'astro:db';
+import { IssueService } from '../../../../lib/services/issue-service.js';
+import { LogService } from '../../../../lib/services/log-service.js';
 import { cancelGeminiRequest } from '../../../../lib/gemini-service.js';
 import { cancelOpencodeRequest } from '../../../../lib/opencode-service.js';
 
@@ -12,7 +13,7 @@ export const POST = async ({ params }) => {
   }
 
   try {
-    const issue = await db.select().from(Issue).where(eq(Issue.id, id)).get();
+    const issue = await IssueService.getById(id);
     if (!issue) {
       return new Response(JSON.stringify({ error: 'Issue not found' }), {
         status: 404,
@@ -37,18 +38,8 @@ export const POST = async ({ params }) => {
     }
 
     if (cancelled) {
-      await db
-        .update(Issue)
-        .set({ status: 'todo', updated_at: new Date() })
-        .where(eq(Issue.id, id));
-
-      await db.insert(Log).values({
-        id: crypto.randomUUID(),
-        issue_id: id,
-        action: 'Execution Cancelled',
-        summary: `${provider === 'opencode' ? 'Opencode' : 'Gemini'} execution cancelled by user`,
-        created_at: new Date(),
-      });
+      await IssueService.updateStatus(id, 'todo');
+      await LogService.create(id, 'Execution Cancelled', `${provider === 'opencode' ? 'Opencode' : 'Gemini'} execution cancelled by user`);
 
       return new Response(JSON.stringify({ success: true, status: 'todo' }), {
         status: 200,

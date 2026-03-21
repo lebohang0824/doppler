@@ -1,6 +1,7 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import { db, Issue, Project, eq } from 'astro:db';
+import { IssueService } from '../../lib/services/issue-service.js';
+import { ProjectService } from '../../lib/services/project-service.js';
 import IssueHeader from '../../components/issues/IssueHeader.astro';
 import IssueDetailsCard from '../../components/issues/IssueDetailsCard.astro';
 import ExecutionResultsCard from '../../components/issues/ExecutionResultsCard.astro';
@@ -13,15 +14,13 @@ if (!id) {
     return Astro.redirect('/issues');
 }
 
-const issueResult = await db.select().from(Issue).where(eq(Issue.id, id));
-const issue = issueResult[0];
+const issue = await IssueService.getById(id);
 
 if (!issue) {
     return Astro.redirect('/issues');
 }
 
-const projectResult = await db.select().from(Project).where(eq(Project.id, issue.project_id));
-const project = projectResult[0];
+const project = await ProjectService.getById(issue.project_id);
 
 const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
 const createdAtFormatted = new Date(issue.created_at).toLocaleString();

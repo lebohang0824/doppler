@@ -1,4 +1,8 @@
-import { db, Issue, Project, Log, Report, SelectedModel, Model, eq } from 'astro:db';
+import { IssueService } from '../../../../lib/services/issue-service.js';
+import { ProjectService } from '../../../../lib/services/project-service.js';
+import { LogService } from '../../../../lib/services/log-service.js';
+import { ReportService } from '../../../../lib/services/report-service.js';
+import { SettingsService } from '../../../../lib/services/settings-service.js';
 import {
   runGeminiRequest,
   isGeminiRunning,
@@ -68,7 +72,7 @@ export const POST = async ({ params }) => {
   }
 
   try {
-    const issue = await db.select().from(Issue).where(eq(Issue.id, id)).get();
+    const issue = await IssueService.getById(id);
     if (!issue) {
       return new Response(JSON.stringify({ error: 'Issue not found' }), {
         status: 404,
@@ -76,11 +80,7 @@ export const POST = async ({ params }) => {
       });
     }
 
-    const project = await db
-      .select()
-      .from(Project)
-      .where(eq(Project.id, issue.project_id))
-      .get();
+    const project = await ProjectService.getById(issue.project_id);
     if (!project) {
       return new Response(JSON.stringify({ error: 'Project not found' }), {
         status: 404,
@@ -88,7 +88,7 @@ export const POST = async ({ params }) => {
       });
     }
 
-    const selectedModel = await db.select().from(SelectedModel).where(eq(SelectedModel.id, 'default')).get();
+    const selectedModel = await SettingsService.getSelectedModel();
     
     // Only use gemini CLI if provider is explicitly 'gemini'
     const provider = selectedModel?.provider === 'gemini' ? 'gemini' : 'opencode';
@@ -96,27 +96,20 @@ export const POST = async ({ params }) => {
     const targetStatus = isBusy ? 'queued' : 'executing';
     const modelId = selectedModel?.model_id || null;
 
-    await db
-      .update(Issue)
-      .set({ 
-        status: targetStatus, 
-        provider: provider,
-        model: modelId,
-        updated_at: new Date() 
-      })
-      .where(eq(Issue.id, id));
+    await IssueService.update(id, { 
+      status: targetStatus, 
+      provider: provider,
+      model: modelId
+    });
 
     const providerName = provider === 'opencode' ? 'Opencode CLI' : 'Gemini CLI';
 
-    await db.insert(Log).values({
-      id: crypto.randomUUID(),
-      issue_id: id,
-      action: isBusy ? 'Execution Queued' : 'Execution Start',
-      summary: isBusy 
+    await LogService.create(id, 
+      isBusy ? 'Execution Queued' : 'Execution Start',
+      isBusy 
         ? `${providerName} execution added to queue (another process is running)` 
-        : `${providerName} execution started`,
-      created_at: new Date(),
-    });
+        : `${providerName} execution started`
+    );
 
     let prompt = `${issue.title}: ${issue.description}`;
     if (issue.attachments && Array.isArray(issue.attachments) && issue.attachments.length > 0) {
@@ -129,70 +122,30 @@ export const POST = async ({ params }) => {
       runOpencodeRequest(prompt, project.directory, {
         onStart: async (pid) => {
           actualStartTime = new Date();
-          await db
-            .update(Issue)
-            .set({ 
-              status: 'executing', 
-              updated_at: actualStartTime 
-            })
-            .where(eq(Issue.id, id));
-          await db.insert(Log).values({
-            id: crypto.randomUUID(),
-            issue_id: id,
-            action: 'Execution Running',
-            summary: `Opencode CLI (PID: ${pid}) is now processing this issue`,
-            created_at: actualStartTime,
-          });
+          await IssueService.updateStatus(id, 'executing', { updated_at: actualStartTime });
+          await LogService.create(id, 'Execution Running', `Opencode CLI (PID: ${pid}) is now processing this issue`);
         },
       }, modelId)
         .then(async (result) => {
           const durationSecs = actualStartTime ? Math.floor((new Date() - actualStartTime) / 1000) : 0;
           const durationStr = durationSecs < 60 ? `${durationSecs}s` : `${Math.floor(durationSecs / 60)}m ${durationSecs % 60}s`;
           
-          const cleanResult = result.replace(/\x1B\[[0-9;]*[JKmsu]/g, '');
-          const uniqueFiles = extractFilesOpencode(cleanResult);
+          const uniqueFiles = extractFilesOpencode(result.replace(/\x1B\[[0-9;]*[JKmsu]/g, ''));
 
-          console.log(`Extracted ${uniqueFiles.length} files from Opencode execution result for issue ${id}`);
-
-          const reportId = crypto.randomUUID();
-          await db.insert(Report).values({
-            id: reportId,
-            issue_id: id,
+          await ReportService.create(id, {
             summary: 'Opencode CLI execution result',
             details: result,
             files_changed: uniqueFiles,
             duration: durationSecs,
-            created_at: new Date(),
           });
 
-          await db
-            .update(Issue)
-            .set({ status: 'testing', updated_at: new Date() })
-            .where(eq(Issue.id, id));
-
-          await db.insert(Log).values({
-            id: crypto.randomUUID(),
-            issue_id: id,
-            action: 'Execution Complete',
-            summary: `Opencode CLI finished execution in ${durationStr}. Moved to testing.`,
-            created_at: new Date(),
-          });
+          await IssueService.updateStatus(id, 'testing');
+          await LogService.create(id, 'Execution Complete', `Opencode CLI finished execution in ${durationStr}. Moved to testing.`);
         })
         .catch(async (error) => {
           console.error(`Opencode execution failed for issue ${id}:`, error);
-
-          await db.insert(Log).values({
-            id: crypto.randomUUID(),
-            issue_id: id,
-            action: 'Execution Error',
-            summary: `Opencode execution failed: ${error.message}`,
-            created_at: new Date(),
-          });
-
-          await db
-            .update(Issue)
-            .set({ status: 'todo', updated_at: new Date() })
-            .where(eq(Issue.id, id));
+          await LogService.create(id, 'Execution Error', `Opencode execution failed: ${error.message}`);
+          await IssueService.updateStatus(id, 'todo');
         });
     } else {
       const escapedPrompt = prompt.replace(/"/g, '\\"');
@@ -201,70 +154,30 @@ export const POST = async ({ params }) => {
       runGeminiRequest(args, project.directory, {
         onStart: async (pid) => {
           actualStartTime = new Date();
-          await db
-            .update(Issue)
-            .set({ 
-              status: 'executing', 
-              updated_at: actualStartTime 
-            })
-            .where(eq(Issue.id, id));
-          await db.insert(Log).values({
-            id: crypto.randomUUID(),
-            issue_id: id,
-            action: 'Execution Running',
-            summary: `Gemini CLI (PID: ${pid}) is now processing this issue`,
-            created_at: actualStartTime,
-          });
+          await IssueService.updateStatus(id, 'executing', { updated_at: actualStartTime });
+          await LogService.create(id, 'Execution Running', `Gemini CLI (PID: ${pid}) is now processing this issue`);
         },
       }, modelId)
         .then(async (result) => {
           const durationSecs = actualStartTime ? Math.floor((new Date() - actualStartTime) / 1000) : 0;
           const durationStr = durationSecs < 60 ? `${durationSecs}s` : `${Math.floor(durationSecs / 60)}m ${durationSecs % 60}s`;
 
-          const cleanResult = result.replace(/\x1B\[[0-9;]*[JKmsu]/g, '');
-          const uniqueFiles = extractFiles(cleanResult);
+          const uniqueFiles = extractFiles(result.replace(/\x1B\[[0-9;]*[JKmsu]/g, ''));
 
-          console.log(`Extracted ${uniqueFiles.length} files from Gemini execution result for issue ${id}`);
-
-          const reportId = crypto.randomUUID();
-          await db.insert(Report).values({
-            id: reportId,
-            issue_id: id,
+          await ReportService.create(id, {
             summary: 'Gemini CLI execution result',
             details: result,
             files_changed: uniqueFiles,
             duration: durationSecs,
-            created_at: new Date(),
           });
 
-          await db
-            .update(Issue)
-            .set({ status: 'testing', updated_at: new Date() })
-            .where(eq(Issue.id, id));
-
-          await db.insert(Log).values({
-            id: crypto.randomUUID(),
-            issue_id: id,
-            action: 'Execution Complete',
-            summary: `Gemini CLI finished execution in ${durationStr}. Moved to testing.`,
-            created_at: new Date(),
-          });
+          await IssueService.updateStatus(id, 'testing');
+          await LogService.create(id, 'Execution Complete', `Gemini CLI finished execution in ${durationStr}. Moved to testing.`);
         })
         .catch(async (error) => {
           console.error(`Gemini execution failed for issue ${id}:`, error);
-
-          await db.insert(Log).values({
-            id: crypto.randomUUID(),
-            issue_id: id,
-            action: 'Execution Error',
-            summary: `Gemini execution failed: ${error.message}`,
-            created_at: new Date(),
-          });
-
-          await db
-            .update(Issue)
-            .set({ status: 'todo', updated_at: new Date() })
-            .where(eq(Issue.id, id));
+          await LogService.create(id, 'Execution Error', `Gemini execution failed: ${error.message}`);
+          await IssueService.updateStatus(id, 'todo');
         });
     }
 

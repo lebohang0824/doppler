@@ -1,4 +1,6 @@
-import { db, Issue, Project, Log, eq } from 'astro:db';
+import { IssueService } from '../../../../lib/services/issue-service.js';
+import { ProjectService } from '../../../../lib/services/project-service.js';
+import { LogService } from '../../../../lib/services/log-service.js';
 import { resetToHead } from '../../../../lib/git-service.js';
 
 export const POST = async ({ params, request }) => {
@@ -22,7 +24,7 @@ export const POST = async ({ params, request }) => {
       );
     }
 
-    const issue = await db.select().from(Issue).where(eq(Issue.id, id)).get();
+    const issue = await IssueService.getById(id);
     if (!issue) {
       return new Response(JSON.stringify({ error: 'Issue not found' }), {
         status: 404,
@@ -30,11 +32,7 @@ export const POST = async ({ params, request }) => {
       });
     }
 
-    const project = await db
-      .select()
-      .from(Project)
-      .where(eq(Project.id, issue.project_id))
-      .get();
+    const project = await ProjectService.getById(issue.project_id);
     if (!project) {
       return new Response(JSON.stringify({ error: 'Project not found' }), {
         status: 404,
@@ -51,19 +49,10 @@ export const POST = async ({ params, request }) => {
     }
 
     // Update status to todo
-    await db
-      .update(Issue)
-      .set({ status: 'todo', updated_at: new Date() })
-      .where(eq(Issue.id, id));
+    await IssueService.updateStatus(id, 'todo');
 
     // Log the rejection
-    await db.insert(Log).values({
-      id: crypto.randomUUID(),
-      issue_id: id,
-      action: 'Rejected',
-      summary: `Issue rejected: ${reason}`,
-      created_at: new Date(),
-    });
+    await LogService.create(id, 'Rejected', `Issue rejected: ${reason}`);
 
     return new Response(JSON.stringify({ success: true, status: 'todo' }), {
       status: 200,

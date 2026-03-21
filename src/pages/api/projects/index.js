@@ -1,9 +1,9 @@
-import { db, Project, eq } from 'astro:db';
+import { ProjectService } from '../../../lib/services/project-service.js';
 import { initializeWithFirstCommit } from '../../../lib/git-service.js';
 
 export const GET = async () => {
   try {
-    const projects = await db.select().from(Project);
+    const projects = await ProjectService.getAll();
     return new Response(JSON.stringify(projects), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -31,14 +31,7 @@ export const POST = async ({ request }) => {
       );
     }
 
-    const id = crypto.randomUUID();
-    await db.insert(Project).values({
-      id,
-      name,
-      description,
-      directory,
-      created_at: new Date(),
-    });
+    const newProject = await ProjectService.create(name, description, directory);
 
     try {
       await initializeWithFirstCommit(directory);
@@ -46,12 +39,6 @@ export const POST = async ({ request }) => {
       console.error(`Failed to initialize git in ${directory}:`, e);
       // We still return 201 because the project was created in the database
     }
-
-    const newProject = await db
-      .select()
-      .from(Project)
-      .where(eq(Project.id, id))
-      .get();
 
     return new Response(JSON.stringify(newProject), {
       status: 201,

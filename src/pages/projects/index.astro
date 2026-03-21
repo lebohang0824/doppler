@@ -1,8 +1,8 @@
 ---
 import DashboardLayout from '../../layouts/DashboardLayout.astro';
-import { db, Project } from 'astro:db';
+import { ProjectService } from '../../lib/services/project-service.js';
 
-const projects = await db.select().from(Project);
+const projects = await ProjectService.getAll();
 const projectId = Astro.url.searchParams.get('project_id');
 ---
 

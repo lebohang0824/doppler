@@ -1,4 +1,5 @@
-import { db, Issue, Log, Report, eq } from 'astro:db';
+import { IssueService } from '../../../lib/services/issue-service.js';
+import { LogService } from '../../../lib/services/log-service.js';
 
 const VALID_PRIORITIES = ['low', 'medium', 'high', 'critical'];
 const VALID_STATUSES = ['todo', 'queued', 'executing', 'testing', 'done'];
@@ -14,11 +15,7 @@ export const GET = async ({ params }) => {
   }
 
   try {
-    const issue = await db
-      .select()
-      .from(Issue)
-      .where(eq(Issue.id, id))
-      .get();
+    const issue = await IssueService.getById(id);
 
     if (!issue) {
       return new Response(JSON.stringify({ error: 'Issue not found' }), {
@@ -52,11 +49,7 @@ export const PATCH = async ({ params, request }) => {
     const body = await request.json();
     const { title, description, priority, status, type, scheduled_for } = body;
 
-    const existingIssue = await db
-      .select()
-      .from(Issue)
-      .where(eq(Issue.id, id))
-      .get();
+    const existingIssue = await IssueService.getById(id);
     if (!existingIssue) {
       return new Response(JSON.stringify({ error: 'Issue not found' }), {
         status: 404,
@@ -126,25 +119,13 @@ export const PATCH = async ({ params, request }) => {
       }
     }
 
+    let updatedIssue = existingIssue;
     if (Object.keys(updateData).length > 0) {
-      updateData.updated_at = new Date();
-      await db.update(Issue).set(updateData).where(eq(Issue.id, id));
+      updatedIssue = await IssueService.update(id, updateData);
 
       // LOG THE CHANGES
-      await db.insert(Log).values({
-        id: crypto.randomUUID(),
-        issue_id: id,
-        action: 'Updated',
-        summary: changes.join(', '),
-        created_at: new Date(),
-      });
+      await LogService.create(id, 'Updated', changes.join(', '));
     }
-
-    const updatedIssue = await db
-      .select()
-      .from(Issue)
-      .where(eq(Issue.id, id))
-      .get();
 
     return new Response(JSON.stringify(updatedIssue), {
       status: 200,
@@ -169,13 +150,7 @@ export const DELETE = async ({ params }) => {
   }
 
   try {
-    // Delete associated records first due to foreign key constraints
-    await db.delete(Log).where(eq(Log.issue_id, id));
-    await db.delete(Report).where(eq(Report.issue_id, id));
-    
-    // Now delete the issue itself
-    const result = await db.delete(Issue).where(eq(Issue.id, id));
-
+    await IssueService.delete(id);
     return new Response(null, { status: 204 });
   } catch (error) {
     console.error('Delete error:', error);

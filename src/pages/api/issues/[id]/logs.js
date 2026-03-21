@@ -1,4 +1,4 @@
-import { db, Log, eq, desc } from 'astro:db';
+import { LogService } from '../../../../lib/services/log-service.js';
 
 export const GET = async ({ params }) => {
   const { id } = params;
@@ -11,12 +11,7 @@ export const GET = async ({ params }) => {
   }
 
   try {
-    const logs = await db
-      .select()
-      .from(Log)
-      .where(eq(Log.issue_id, id))
-      .orderBy(desc(Log.created_at))
-      .limit(50);
+    const logs = await LogService.getByIssue(id);
 
     return new Response(JSON.stringify(logs), {
       status: 200,

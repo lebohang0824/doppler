@@ -1,8 +1,8 @@
-import { db, ApiToken, eq } from 'astro:db';
+import { SettingsService } from '../../../lib/services/settings-service.js';
 
 export const GET = async () => {
   try {
-    const tokens = await db.select().from(ApiToken);
+    const tokens = await SettingsService.getAllTokens();
     const result = tokens.reduce((acc, token) => {
       acc[token.provider] = {
         hasToken: !!token.token,
@@ -34,21 +34,7 @@ export const POST = async ({ request }) => {
       });
     }
 
-    const existing = await db.select().from(ApiToken).where(eq(ApiToken.provider, provider)).get();
-
-    if (existing) {
-      await db.update(ApiToken)
-        .set({ token, updated_at: new Date() })
-        .where(eq(ApiToken.provider, provider));
-    } else {
-      await db.insert(ApiToken).values({
-        id: crypto.randomUUID(),
-        provider,
-        token,
-        created_at: new Date(),
-        updated_at: new Date(),
-      });
-    }
+    await SettingsService.saveToken(provider, token);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,
@@ -75,7 +61,7 @@ export const DELETE = async ({ request }) => {
       });
     }
 
-    await db.delete(ApiToken).where(eq(ApiToken.provider, provider));
+    await SettingsService.deleteToken(provider);
 
     return new Response(JSON.stringify({ success: true }), {
       status: 200,

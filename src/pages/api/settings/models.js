@@ -1,4 +1,4 @@
-import { db, Model, ApiToken, eq } from 'astro:db';
+import { SettingsService } from '../../../lib/services/settings-service.js';
 
 const defaultModels = [
   { id: 'opencode/big-pickle', name: 'Big Pickle (Default)', provider: 'opencode', tier: 'free' },
@@ -48,7 +48,7 @@ export const GET = async ({ url }) => {
 
     let tokens = {};
     try {
-      const tokenRows = await db.select().from(ApiToken);
+      const tokenRows = await SettingsService.getAllTokens();
       tokens = tokenRows.filter(t => t.token).reduce((acc, t) => {
         acc[t.provider] = true;
         return acc;
@@ -59,7 +59,7 @@ export const GET = async ({ url }) => {
 
     let models = [];
     try {
-      const dbModels = await db.select().from(Model);
+      const dbModels = await SettingsService.getAllModels();
       if (dbModels.length > 0) {
         models = dbModels;
       } else {

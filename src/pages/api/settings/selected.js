@@ -1,32 +1,18 @@
-import { db, SelectedModel, Model, eq } from 'astro:db';
+import { SettingsService } from '../../../lib/services/settings-service.js';
 
 export const GET = async () => {
   try {
-    const selected = await db.select().from(SelectedModel).where(eq(SelectedModel.id, 'default')).get();
-
-    if (!selected) {
-      const defaultModel = await db.select().from(Model).where(eq(Model.id, 'gemini-3.1-pro-preview')).get();
-      
-      return new Response(JSON.stringify({
-        provider: 'gemini',
-        model_id: 'gemini-3.1-pro-preview',
-        model: defaultModel || {
-          id: 'gemini-3.1-pro-preview',
-          name: 'Gemini 3.1 Pro',
-          provider: 'gemini',
-          tier: 'free',
-        },
-      }), {
-        status: 200,
-        headers: { 'Content-Type': 'application/json' },
-      });
-    }
-
-    const model = await db.select().from(Model).where(eq(Model.id, selected.model_id)).get();
+    const selected = await SettingsService.getSelectedModel();
+    const model = await SettingsService.getModelById(selected.model_id);
 
     return new Response(JSON.stringify({
       ...selected,
-      model: model || null,
+      model: model || {
+        id: selected.model_id,
+        name: selected.model_id,
+        provider: selected.provider,
+        tier: 'free',
+      },
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },
@@ -60,33 +46,12 @@ export const POST = async ({ request }) => {
       });
     }
 
-    const existing = await db.select().from(SelectedModel).where(eq(SelectedModel.id, 'default')).get();
-
-    if (existing) {
-      await db.update(SelectedModel)
-        .set({ provider, model_id, updated_at: new Date() })
-        .where(eq(SelectedModel.id, 'default'));
-    } else {
-      await db.insert(SelectedModel).values({
-        id: 'default',
-        provider,
-        model_id,
-        created_at: new Date(),
-        updated_at: new Date(),
-      });
-    }
-
-    let model = null;
-    try {
-      model = await db.select().from(Model).where(eq(Model.id, model_id)).get();
-    } catch (e) {
-      model = { id: model_id, name: model_id, provider, tier: 'free' };
-    }
+    const selected = await SettingsService.saveSelectedModel(provider, model_id);
+    const model = await SettingsService.getModelById(model_id);
 
     return new Response(JSON.stringify({
-      provider,
-      model_id,
-      model,
+      ...selected,
+      model: model || { id: model_id, name: model_id, provider, tier: 'free' },
     }), {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

@@ -1,4 +1,6 @@
-import { db, Issue, Project, Log, eq } from 'astro:db';
+import { IssueService } from '../../../../lib/services/issue-service.js';
+import { ProjectService } from '../../../../lib/services/project-service.js';
+import { LogService } from '../../../../lib/services/log-service.js';
 import { commit } from '../../../../lib/git-service.js';
 
 export const POST = async ({ params, request }) => {
@@ -22,7 +24,7 @@ export const POST = async ({ params, request }) => {
       );
     }
 
-    const issue = await db.select().from(Issue).where(eq(Issue.id, id)).get();
+    const issue = await IssueService.getById(id);
     if (!issue) {
       return new Response(JSON.stringify({ error: 'Issue not found' }), {
         status: 404,
@@ -30,11 +32,7 @@ export const POST = async ({ params, request }) => {
       });
     }
 
-    const project = await db
-      .select()
-      .from(Project)
-      .where(eq(Project.id, issue.project_id))
-      .get();
+    const project = await ProjectService.getById(issue.project_id);
     if (!project) {
       return new Response(JSON.stringify({ error: 'Project not found' }), {
         status: 404,
@@ -60,19 +58,10 @@ export const POST = async ({ params, request }) => {
     }
 
     // Update status to done
-    await db
-      .update(Issue)
-      .set({ status: 'done', updated_at: new Date() })
-      .where(eq(Issue.id, id));
+    await IssueService.updateStatus(id, 'done');
 
     // Log the approval
-    await db.insert(Log).values({
-      id: crypto.randomUUID(),
-      issue_id: id,
-      action: 'Approved',
-      summary: `Issue approved and committed: ${message}`,
-      created_at: new Date(),
-    });
+    await LogService.create(id, 'Approved', `Issue approved and committed: ${message}`);
 
     return new Response(JSON.stringify({ success: true, status: 'done' }), {
       status: 200,

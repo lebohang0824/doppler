@@ -1,4 +1,4 @@
-import { db, Report, eq, desc } from 'astro:db';
+import { ReportService } from '../../../../lib/services/report-service.js';
 
 export const GET = async ({ params }) => {
   const { id } = params;
@@ -11,11 +11,7 @@ export const GET = async ({ params }) => {
   }
 
   try {
-    const reports = await db
-      .select()
-      .from(Report)
-      .where(eq(Report.issue_id, id))
-      .orderBy(desc(Report.created_at));
+    const reports = await ReportService.getByIssue(id);
 
     return new Response(JSON.stringify(reports), {
       status: 200,

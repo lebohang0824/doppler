@@ -1,6 +1,6 @@
 ---
 import DashboardLayout from '../layouts/DashboardLayout.astro';
-import { db, Project, eq } from 'astro:db';
+import { ProjectService } from '../lib/services/project-service.js';
 
 const projectId = Astro.url.searchParams.get('project_id');
 const status = Astro.url.searchParams.get('status');
@@ -8,11 +8,7 @@ const status = Astro.url.searchParams.get('status');
 let project = null;
 
 if (projectId) {
-  const projectResult = await db
-    .select()
-    .from(Project)
-    .where(eq(Project.id, projectId));
-  project = projectResult[0];
+  project = await ProjectService.getById(projectId);
 }
 
 const title = project
@@ -224,25 +220,6 @@ const title = project
       submitting: false,
       loading: false,
       issues: [],
-      issueForm: {
-        project_id: projectId,
-        title: '',
-        description: '',
-        type: 'Bug',
-        priority: 'medium',
-        status: status || 'todo',
-        files: null,
-      },
-
-      handleFileUpload(event) {
-        this.issueForm.files = event.target.files;
-      },
-
-      async init() {
-        if (this.projectId) {
-          await this.fetchIssues();
-        }
-      },
       issueForm: {
         project_id: projectId,
         title: '',

@@ -1,4 +1,7 @@
-import { db, Issue, Project, Log, eq, and, desc } from 'astro:db';
+import { IssueService } from '../../../lib/services/issue-service.js';
+import { ProjectService } from '../../../lib/services/project-service.js';
+import { LogService } from '../../../lib/services/log-service.js';
+import { db, Issue, eq, and, desc } from 'astro:db';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -102,11 +105,7 @@ export const POST = async ({ request }) => {
     }
 
     // Check if project exists
-    const project = await db
-      .select()
-      .from(Project)
-      .where(eq(Project.id, project_id))
-      .get();
+    const project = await ProjectService.getById(project_id);
 
     if (!project) {
       return new Response(JSON.stringify({ error: 'Project not found' }), {
@@ -135,7 +134,6 @@ export const POST = async ({ request }) => {
 
     const finalStatus = status || 'todo';
     const newIssueData = {
-      id,
       project_id,
       title,
       description,
@@ -146,26 +144,12 @@ export const POST = async ({ request }) => {
       model: model || null,
       attachments: attachments.length > 0 ? attachments : null,
       scheduled_for: scheduled_for ? new Date(scheduled_for) : null,
-      created_at: new Date(),
-      updated_at: new Date(),
     };
 
-    await db.insert(Issue).values(newIssueData);
+    const newIssue = await IssueService.create({ id, ...newIssueData });
 
     // LOG THE CREATION
-    await db.insert(Log).values({
-      id: crypto.randomUUID(),
-      issue_id: id,
-      action: 'Created',
-      summary: `Issue "${title}" created with status "${finalStatus}"`,
-      created_at: new Date(),
-    });
-
-    const newIssue = await db
-      .select()
-      .from(Issue)
-      .where(eq(Issue.id, id))
-      .get();
+    await LogService.create(id, 'Created', `Issue "${title}" created with status "${finalStatus}"`);
 
     return new Response(JSON.stringify(newIssue), {
       status: 201,
