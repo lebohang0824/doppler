@@ -26,7 +26,7 @@ if (projectId) {
       }
     });
   } catch (e) {
-    console.error("Error fetching initial counts:", e);
+    console.error('Error fetching initial counts:', e);
   }
 }
 
@@ -34,80 +34,113 @@ const currentPath = Astro.url.pathname;
 const projectQuery = projectId ? `?project_id=${projectId}` : '';
 ---
 
-<aside class="sidebar" x-data={`sidebar({ projectId: '${projectId || ''}', initialCounts: ${JSON.stringify(initialCounts)} })`}>
-  <div class="logo">
-    <i class="fa-solid fa-satellite-dish fa-xl"></i>
+<aside
+  class='sidebar'
+  x-data={`sidebar({ projectId: '${projectId || ''}', initialCounts: ${JSON.stringify(initialCounts)} })`}>
+  <div class='logo'>
+    <i class='fa-solid fa-satellite-dish fa-xl'></i>
     <h2>Doppler</h2>
   </div>
-  
+
   <nav>
-    <div class="nav-section">
+    <div class='nav-section'>
       <h3>Menu</h3>
       <ul>
         <li>
-          <a href={`/${projectQuery}`} class={currentPath === '/' ? 'active' : ''}>
-            <i class="fa-solid fa-gauge-high icon"></i> Dashboard
+          <a
+            href={`/${projectQuery}`}
+            class={currentPath === '/' ? 'active' : ''}>
+            <i class='fa-solid fa-gauge-high icon'></i> Dashboard
           </a>
         </li>
         <li>
-          <a href={`/projects${projectQuery}`} class={currentPath.startsWith('/projects') ? 'active' : ''}>
-            <i class="fa-solid fa-folder-tree icon"></i> Projects
+          <a
+            href={`/projects${projectQuery}`}
+            class={currentPath.startsWith('/projects') ? 'active' : ''}>
+            <i class='fa-solid fa-folder-tree icon'></i> Projects
           </a>
         </li>
         <li>
-          <a href={`/settings`} class={currentPath.startsWith('/settings') ? 'active' : ''}>
-            <i class="fa-solid fa-gear icon"></i> Settings
+          <a
+            href={`/settings${projectQuery}`}
+            class={currentPath.startsWith('/settings') ? 'active' : ''}>
+            <i class='fa-solid fa-gear icon'></i> Settings
           </a>
         </li>
       </ul>
     </div>
 
-    <div class="nav-section">
+    <div class='nav-section'>
       <h3>Issue Status</h3>
-      <ul class="status-list">
+      <ul class='status-list'>
         <li>
-          <a href={`/issues?status=todo${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label-group">
-                <i class="fa-solid fa-list-check icon"></i>
-                <span class="label">Todo</span>
+          <a
+            href={`/issues?status=todo${projectId ? `&project_id=${projectId}` : ''}`}
+            class='status-link'>
+            <span class='label-group'>
+              <i class='fa-solid fa-list-check icon'></i>
+              <span class='label'>Todo</span>
             </span>
-            <span class="counter" x-text="counts.todo"></span>
+            <span
+              class='counter'
+              x-text='counts.todo'
+            ></span>
           </a>
         </li>
         <li>
-          <a href={`/issues?status=queued${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label-group">
-                <i class="fa-solid fa-clock icon"></i>
-                <span class="label">Queued</span>
+          <a
+            href={`/issues?status=queued${projectId ? `&project_id=${projectId}` : ''}`}
+            class='status-link'>
+            <span class='label-group'>
+              <i class='fa-solid fa-clock icon'></i>
+              <span class='label'>Queued</span>
             </span>
-            <span class="counter" x-text="counts.queued"></span>
+            <span
+              class='counter'
+              x-text='counts.queued'
+            ></span>
           </a>
         </li>
         <li>
-          <a href={`/issues?status=executing${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label-group">
-                <i class="fa-solid fa-play icon"></i>
-                <span class="label">Executing</span>
+          <a
+            href={`/issues?status=executing${projectId ? `&project_id=${projectId}` : ''}`}
+            class='status-link'>
+            <span class='label-group'>
+              <i class='fa-solid fa-play icon'></i>
+              <span class='label'>Executing</span>
             </span>
-            <span class="counter" x-text="counts.executing"></span>
+            <span
+              class='counter'
+              x-text='counts.executing'
+            ></span>
           </a>
         </li>
         <li>
-          <a href={`/issues?status=testing${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label-group">
-                <i class="fa-solid fa-flask icon"></i>
-                <span class="label">Testing</span>
+          <a
+            href={`/issues?status=testing${projectId ? `&project_id=${projectId}` : ''}`}
+            class='status-link'>
+            <span class='label-group'>
+              <i class='fa-solid fa-flask icon'></i>
+              <span class='label'>Testing</span>
             </span>
-            <span class="counter" x-text="counts.testing"></span>
+            <span
+              class='counter'
+              x-text='counts.testing'
+            ></span>
           </a>
         </li>
         <li>
-          <a href={`/issues?status=done${projectId ? `&project_id=${projectId}` : ''}`} class="status-link">
-            <span class="label-group">
-                <i class="fa-solid fa-circle-check icon"></i>
-                <span class="label">Done</span>
+          <a
+            href={`/issues?status=done${projectId ? `&project_id=${projectId}` : ''}`}
+            class='status-link'>
+            <span class='label-group'>
+              <i class='fa-solid fa-circle-check icon'></i>
+              <span class='label'>Done</span>
             </span>
-            <span class="counter" x-text="counts.done"></span>
+            <span
+              class='counter'
+              x-text='counts.done'
+            ></span>
           </a>
         </li>
       </ul>
@@ -122,35 +155,43 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
       Alpine.data('sidebar', ({ projectId, initialCounts }) => ({
         projectId,
         counts: initialCounts,
-        
+
         async init() {
           if (!this.projectId) return;
-          
+
           // Poll for updates every 5 seconds
           setInterval(() => {
             this.fetchCounts();
           }, 5000);
         },
-        
+
         async fetchCounts() {
           try {
             const res = await fetch(`/api/projects/${this.projectId}/counts`);
             if (res.ok) {
               const newCounts = await res.json();
-              
+
               // Simple change detection for toasts
               if (newCounts.testing > this.counts.testing) {
-                window.notify('A background task has finished execution', 'success', 'fa-circle-check');
+                window.notify(
+                  'A background task has finished execution',
+                  'success',
+                  'fa-circle-check',
+                );
               } else if (newCounts.executing > this.counts.executing) {
-                window.notify('A background task has started running', 'info', 'fa-play');
+                window.notify(
+                  'A background task has started running',
+                  'info',
+                  'fa-play',
+                );
               }
-              
+
               this.counts = newCounts;
             }
           } catch (e) {
             console.error('Failed to fetch sidebar counts', e);
           }
-        }
+        },
       }));
     });
   }
@@ -247,9 +288,9 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
     padding: 0.5rem 1rem;
     width: 100%;
   }
-  
+
   .status-list li:hover {
-     background-color: transparent;
+    background-color: transparent;
   }
 
   .counter {

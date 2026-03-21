@@ -1,103 +1,152 @@
 ---
 import DashboardLayout from '../layouts/DashboardLayout.astro';
+
+// Read project_id from search params on the server-side
+const currentProjectId = Astro.url.searchParams.get('project_id');
 ---
 
-<DashboardLayout title="Settings">
-  <div x-data="settingsPage()">
-    <div class="header">
+<DashboardLayout
+  title='Settings'
+  projectId={currentProjectId}>
+  <div x-data='settingsPage()'>
+    <div class='header'>
       <h1>Settings</h1>
     </div>
 
-    <div class="settings-content">
-      <div class="card">
-        <div class="card-header">
-          <h2><i class="fa-solid fa-key"></i> API Tokens</h2>
+    <div class='settings-content'>
+      <div class='card'>
+        <div class='card-header'>
+          <h2><i class='fa-solid fa-key'></i> API Tokens</h2>
         </div>
-        <div class="card-body">
-          <p class="settings-intro">
-            Configure API tokens for paid models. Free models don't require tokens.
+        <div class='card-body'>
+          <p class='settings-intro'>
+            Configure API tokens for paid models. Free models don't require
+            tokens.
           </p>
 
-          <div class="token-list">
-            <template x-for="provider in providerConfigs" :key="provider.id">
-              <div class="token-item">
-                <div class="token-header">
-                  <div class="provider-info">
-                    <span class="provider-name" x-text="provider.name"></span>
-                    <span class="provider-id" x-text="provider.id"></span>
+          <div class='token-list'>
+            <template
+              x-for='provider in providerConfigs'
+              :key='provider.id'>
+              <div class='token-item'>
+                <div class='token-header'>
+                  <div class='provider-info'>
+                    <span
+                      class='provider-name'
+                      x-text='provider.name'
+                    ></span>
+                    <span
+                      class='provider-id'
+                      x-text='provider.id'
+                    ></span>
                   </div>
-                  <span 
-                    class="config-status" 
+                  <span
+                    class='config-status'
                     :class="provider.hasToken ? 'configured' : 'not-configured'"
                     x-text="provider.hasToken ? 'Configured' : 'Not Configured'">
                   </span>
                 </div>
-                <div class="token-input-group">
+                <div class='token-input-group'>
                   <input
                     :type="provider.showToken ? 'text' : 'password'"
                     :id="'token-' + provider.id"
-                    x-model="provider.token"
-                    :placeholder="`Enter ${provider.name} API token...`"
-                    class="token-input"
-                    autocomplete="off"
+                    x-model='provider.token'
+                    :placeholder='`Enter ${provider.name} API token...`'
+                    class='token-input'
+                    autocomplete='off'
                   />
-                  <button 
-                    type="button"
-                    @click="provider.showToken = !provider.showToken"
-                    class="btn btn-secondary toggle-visibility">
-                    <i class="fa-solid" :class="provider.showToken ? 'fa-eye-slash' : 'fa-eye'"></i>
+                  <button
+                    type='button'
+                    @click='provider.showToken = !provider.showToken'
+                    class='btn btn-secondary toggle-visibility'>
+                    <i
+                      class='fa-solid'
+                      :class="provider.showToken ? 'fa-eye-slash' : 'fa-eye'"
+                    ></i>
                   </button>
-                  <button 
-                    type="button"
-                    @click="saveToken(provider)"
-                    class="btn btn-secondary save-btn">
-                    <i class="fa-solid fa-floppy-disk"></i>
+                  <button
+                    type='button'
+                    @click='saveToken(provider)'
+                    class='btn btn-secondary save-btn'>
+                    <i class='fa-solid fa-floppy-disk'></i>
                   </button>
-                  <button 
-                    type="button"
-                    @click="clearToken(provider)"
-                    class="btn btn-secondary clear-btn"
-                    x-show="provider.hasToken">
-                    <i class="fa-solid fa-trash"></i>
+                  <button
+                    type='button'
+                    @click='clearToken(provider)'
+                    class='btn btn-secondary clear-btn'
+                    x-show='provider.hasToken'>
+                    <i class='fa-solid fa-trash'></i>
                   </button>
                 </div>
-                <p class="token-hint" x-text="provider.hint"></p>
+                <p
+                  class='token-hint'
+                  x-text='provider.hint'
+                ></p>
               </div>
             </template>
           </div>
         </div>
       </div>
 
-      <div class="card">
-        <div class="card-header">
-          <h2><i class="fa-solid fa-circle-info"></i> Model Configuration Status</h2>
-          <button @click="refreshModels" class="btn btn-secondary btn-small">
-            <i class="fa-solid fa-rotate-right"></i> Refresh
+      <div class='card'>
+        <div class='card-header'>
+          <h2
+            ><i class='fa-solid fa-circle-info'></i> Model Configuration Status</h2
+          >
+          <button
+            @click='refreshModels'
+            class='btn btn-secondary btn-small'>
+            <i class='fa-solid fa-rotate-right'></i> Refresh
           </button>
         </div>
-        <div class="card-body">
-          <template x-if="loadingModels">
-            <div class="loading-state">Loading models...</div>
+        <div class='card-body'>
+          <template x-if='loadingModels'>
+            <div class='loading-state'>Loading models...</div>
           </template>
-          <div class="model-status-list" x-show="!loadingModels">
-            <template x-for="model in modelStatusList" :key="model.id">
-              <div class="model-status-item" :class="[model.configured ? 'available' : 'unavailable', selectedModelId === model.id ? 'selected' : '']">
-                <div class="model-info">
-                  <span class="model-name" x-text="model.name"></span>
-                  <span class="model-provider" x-text="model.provider"></span>
+          <div
+            class='model-status-list'
+            x-show='!loadingModels'>
+            <template
+              x-for='model in modelStatusList'
+              :key='model.id'>
+              <div
+                class='model-status-item'
+                :class="[model.configured ? 'available' : 'unavailable', selectedModelId === model.id ? 'selected' : '']">
+                <div class='model-info'>
+                  <span
+                    class='model-name'
+                    x-text='model.name'
+                  ></span>
+                  <span
+                    class='model-provider'
+                    x-text='model.provider'
+                  ></span>
                 </div>
-                <div class="model-actions">
-                  <div class="model-badges">
-                    <span class="tier-badge" :class="model.tier" x-text="model.tier"></span>
-                    <span class="status-badge" :class="model.configured ? 'configured' : 'not-configured'" x-text="model.configured ? 'Available' : 'Token Required'"></span>
+                <div class='model-actions'>
+                  <div class='model-badges'>
+                    <span
+                      class='tier-badge'
+                      :class='model.tier'
+                      x-text='model.tier'
+                    ></span>
+                    <span
+                      class='status-badge'
+                      :class="model.configured ? 'configured' : 'not-configured'"
+                      x-text="model.configured ? 'Available' : 'Token Required'"
+                    ></span>
                   </div>
-                  <button 
-                    @click="selectModel(model)" 
-                    class="btn btn-small"
+                  <button
+                    @click='selectModel(model)'
+                    class='btn btn-small'
                     :class="selectedModelId === model.id ? 'btn-primary' : 'btn-secondary'"
                     :disabled="!model.configured && model.tier === 'paid'">
-                    <i class="fa-solid" :class="selectedModelId === model.id ? 'fa-check' : 'fa-circle-plus'"></i>
-                    <span x-text="selectedModelId === model.id ? 'Selected' : 'Select'"></span>
+                    <i
+                      class='fa-solid'
+                      :class="selectedModelId === model.id ? 'fa-check' : 'fa-circle-plus'"
+                    ></i>
+                    <span
+                      x-text="selectedModelId === model.id ? 'Selected' : 'Select'"
+                    ></span>
                   </button>
                 </div>
               </div>
@@ -119,7 +168,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://console.anthropic.com/settings/keys'
+          hint: 'Get your API key from https://console.anthropic.com/settings/keys',
         },
         {
           id: 'openai',
@@ -127,7 +176,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://platform.openai.com/api-keys'
+          hint: 'Get your API key from https://platform.openai.com/api-keys',
         },
         {
           id: 'google',
@@ -135,7 +184,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://aistudio.google.com/app/apikey'
+          hint: 'Get your API key from https://aistudio.google.com/app/apikey',
         },
         {
           id: 'x-ai',
@@ -143,7 +192,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://console.x.ai'
+          hint: 'Get your API key from https://console.x.ai',
         },
         {
           id: 'cohere',
@@ -151,7 +200,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://dashboard.cohere.com/api-keys'
+          hint: 'Get your API key from https://dashboard.cohere.com/api-keys',
         },
         {
           id: 'mistral',
@@ -159,7 +208,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://console.mistral.ai/api-keys/'
+          hint: 'Get your API key from https://console.mistral.ai/api-keys/',
         },
         {
           id: 'amazon',
@@ -167,7 +216,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Configure AWS credentials via AWS CLI or environment variables'
+          hint: 'Configure AWS credentials via AWS CLI or environment variables',
         },
         {
           id: 'deepseek',
@@ -175,7 +224,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://platform.deepseek.com/api_keys'
+          hint: 'Get your API key from https://platform.deepseek.com/api_keys',
         },
         {
           id: 'nvidia',
@@ -183,7 +232,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://ngc.nvidia.com/setup/api-key'
+          hint: 'Get your API key from https://ngc.nvidia.com/setup/api-key',
         },
         {
           id: 'nebius',
@@ -191,7 +240,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://nebius.ai/studio/settings/api-keys'
+          hint: 'Get your API key from https://nebius.ai/studio/settings/api-keys',
         },
         {
           id: 'qwen',
@@ -199,7 +248,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from DashScope or use local Ollama models'
+          hint: 'Get your API key from DashScope or use local Ollama models',
         },
         {
           id: 'minimax',
@@ -207,7 +256,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           token: '',
           hasToken: false,
           showToken: false,
-          hint: 'Get your API key from https://platform.minimaxi.com/'
+          hint: 'Get your API key from https://platform.minimaxi.com/',
         },
       ],
       modelStatusList: [],
@@ -225,7 +274,7 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           const res = await fetch('/api/settings/tokens');
           if (res.ok) {
             const tokens = await res.json();
-            this.providerConfigs.forEach(provider => {
+            this.providerConfigs.forEach((provider) => {
               if (tokens[provider.id]) {
                 provider.hasToken = tokens[provider.id].hasToken;
               }
@@ -258,7 +307,11 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 
       async selectModel(model) {
         if (!model.configured && model.tier === 'paid') {
-          window.notify('Please configure API token for this provider first', 'error', 'fa-key');
+          window.notify(
+            'Please configure API token for this provider first',
+            'error',
+            'fa-key',
+          );
           return;
         }
 
@@ -266,20 +319,35 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
           const res = await fetch('/api/settings/selected', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider: model.provider, model_id: model.id }),
+            body: JSON.stringify({
+              provider: model.provider,
+              model_id: model.id,
+            }),
           });
 
           if (res.ok) {
             const data = await res.json();
             this.selectedModelId = data.model_id;
             localStorage.setItem('selectedModel', JSON.stringify(data));
-            window.notify(`Model ${model.name} selected`, 'success', 'fa-check-circle');
+            window.notify(
+              `Model ${model.name} selected`,
+              'success',
+              'fa-check-circle',
+            );
           } else {
-            window.notify('Failed to select model', 'error', 'fa-circle-exclamation');
+            window.notify(
+              'Failed to select model',
+              'error',
+              'fa-circle-exclamation',
+            );
           }
         } catch (e) {
           console.error('Failed to select model:', e);
-          window.notify('Failed to select model', 'error', 'fa-circle-exclamation');
+          window.notify(
+            'Failed to select model',
+            'error',
+            'fa-circle-exclamation',
+          );
         }
       },
 
@@ -304,44 +372,70 @@ import DashboardLayout from '../layouts/DashboardLayout.astro';
 
       async saveToken(provider) {
         if (!provider.token) return;
-        
+
         try {
           const res = await fetch('/api/settings/tokens', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ provider: provider.id, token: provider.token }),
+            body: JSON.stringify({
+              provider: provider.id,
+              token: provider.token,
+            }),
           });
-          
+
           if (res.ok) {
             provider.hasToken = true;
             window.notify(`${provider.name} token saved`, 'success', 'fa-key');
             this.loadModels();
           } else {
-            window.notify('Failed to save token', 'error', 'fa-circle-exclamation');
+            window.notify(
+              'Failed to save token',
+              'error',
+              'fa-circle-exclamation',
+            );
           }
         } catch (e) {
           console.error('Failed to save token:', e);
-          window.notify('Failed to save token', 'error', 'fa-circle-exclamation');
+          window.notify(
+            'Failed to save token',
+            'error',
+            'fa-circle-exclamation',
+          );
         }
       },
 
       async clearToken(provider) {
         try {
-          const res = await fetch(`/api/settings/tokens?provider=${provider.id}`, {
-            method: 'DELETE',
-          });
-          
+          const res = await fetch(
+            `/api/settings/tokens?provider=${provider.id}`,
+            {
+              method: 'DELETE',
+            },
+          );
+
           if (res.ok) {
             provider.token = '';
             provider.hasToken = false;
-            window.notify(`${provider.name} token cleared`, 'warning', 'fa-key');
+            window.notify(
+              `${provider.name} token cleared`,
+              'warning',
+              'fa-key',
+            );
             this.loadModels();
           } else {
-            window.notify('Failed to clear token', 'error', 'fa-circle-exclamation');
+            window.notify(
+              'Failed to clear token',
+              'error',
+              'fa-circle-exclamation',
+            );
           }
         } catch (e) {
           console.error('Failed to clear token:', e);
-          window.notify('Failed to clear token', 'error', 'fa-circle-exclamation');
+          window.notify(
+            'Failed to clear token',
+            'error',
+            'fa-circle-exclamation',
+          );
         }
       },
     }));
