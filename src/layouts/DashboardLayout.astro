@@ -1,29 +1,69 @@
 ---
+import { db, Issue, eq, count } from 'astro:db';
 import Sidebar from '../components/Sidebar.astro';
 import '../styles/global.css';
 
 const { title, projectId: projectIdProp } = Astro.props;
 const projectId = projectIdProp || Astro.url.searchParams.get('project_id');
+
+const initialCounts = {
+  todo: 0,
+  queued: 0,
+  executing: 0,
+  testing: 0,
+  done: 0,
+};
+
+if (projectId) {
+  try {
+    const results = await db
+      .select({ status: Issue.status, count: count() })
+      .from(Issue)
+      .where(eq(Issue.project_id, projectId))
+      .groupBy(Issue.status);
+
+    results.forEach((row) => {
+      const status = row.status.toLowerCase();
+      if (initialCounts.hasOwnProperty(status)) {
+        initialCounts[status] = row.count;
+      }
+    });
+  } catch (e) {
+    console.error('Error fetching initial counts:', e);
+  }
+}
 ---
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{title ? `${title} | Dangerous Doppler` : 'Dangerous Doppler'}</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" integrity="sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA==" crossorigin="anonymous" referrerpolicy="no-referrer" />
-</head>
-<body>
-    <div class="layout">
-        <Sidebar projectId={projectId} />
-        <main class="main-content">
-            <slot />
-        </main>
+
+<!doctype html>
+<html lang='en'>
+  <head>
+    <meta charset='UTF-8' />
+    <meta
+      name='viewport'
+      content='width=device-width, initial-scale=1.0'
+    />
+    <title>{title ? `${title} | Dangerous Doppler` : 'Dangerous Doppler'}</title
+    >
+    <link
+      rel='stylesheet'
+      href='https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css'
+      integrity='sha512-z3gLpd7yknf1YoNbCzqRKc4qyor8gaKU1qmn+CShxbuBusANI9QpRohGBreCFkKxLhei6S9CQXFEbbKuqLg0DA=='
+      crossorigin='anonymous'
+      referrerpolicy='no-referrer'
+    />
+  </head>
+  <body
+    x-data={`app({ projectId: '${projectId || ''}', initialCounts: ${JSON.stringify(initialCounts)} })`}>
+    <div class='layout'>
+      <Sidebar projectId={projectId} />
+      <main class='main-content'>
+        <slot />
+      </main>
     </div>
 
     <!-- Toast Container -->
-    <div 
-        x-data="{ 
+    <div
+      x-data="{ 
             toasts: [],
             add(e) {
                 const id = Date.now();
@@ -37,74 +77,123 @@ const projectId = projectIdProp || Astro.url.searchParams.get('project_id');
                     this.toasts = this.toasts.filter(t => t.id !== id);
                 }, 5000);
             }
-        }" 
-        @toast.window="add($event)"
-        class="toast-container">
-        <template x-for="toast in toasts" :key="toast.id">
-            <div 
-                class="toast" 
-                :class="toast.type"
-                x-transition:enter="toast-enter"
-                x-transition:leave="toast-leave">
-                <i class="fa-solid" :class="toast.icon"></i>
-                <span x-text="toast.message"></span>
-            </div>
-        </template>
+        }"
+      @toast.window='add($event)'
+      class='toast-container'>
+      <template
+        x-for='toast in toasts'
+        :key='toast.id'>
+        <div
+          class='toast'
+          :class='toast.type'
+          x-transition:enter='toast-enter'
+          x-transition:leave='toast-leave'>
+          <i
+            class='fa-solid'
+            :class='toast.icon'
+          ></i>
+          <span x-text='toast.message'></span>
+        </div>
+      </template>
     </div>
 
     <style is:global>
-        .toast-container {
-            position: fixed;
-            bottom: 2rem;
-            right: 2rem;
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-            z-index: 9999;
-        }
+      .toast-container {
+        position: fixed;
+        bottom: 2rem;
+        right: 2rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+        z-index: 9999;
+      }
 
-        .toast {
-            background: white;
-            color: var(--text-color);
-            padding: 1rem 1.5rem;
-            border-radius: 8px;
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            min-width: 250px;
-            border-left: 4px solid var(--primary-color);
-            font-weight: 500;
-        }
+      .toast {
+        background: white;
+        color: var(--text-color);
+        padding: 1rem 1.5rem;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        min-width: 250px;
+        border-left: 4px solid var(--primary-color);
+        font-weight: 500;
+      }
 
-        .toast.success { border-left-color: #2ecc71; }
-        .toast.error { border-left-color: #e74c3c; }
-        .toast.warning { border-left-color: #f1c40f; }
-        .toast.info { border-left-color: var(--primary-color); }
+      .toast.success {
+        border-left-color: #2ecc71;
+      }
+      .toast.error {
+        border-left-color: #e74c3c;
+      }
+      .toast.warning {
+        border-left-color: #f1c40f;
+      }
+      .toast.info {
+        border-left-color: var(--primary-color);
+      }
 
-        .toast-enter {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        .toast-leave {
-            transform: translateX(100%);
-            opacity: 0;
-        }
-        .toast {
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
+      .toast-enter {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      .toast-leave {
+        transform: translateX(100%);
+        opacity: 0;
+      }
+      .toast {
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      }
     </style>
 
     <script is:inline>
-        window.notify = (message, type = 'info', icon = 'fa-circle-info') => {
-            window.dispatchEvent(new CustomEvent('toast', { 
-                detail: { message, type, icon } 
-            }));
-        };
+      window.notify = (message, type = 'info', icon = 'fa-circle-info') => {
+        window.dispatchEvent(
+          new CustomEvent('toast', {
+            detail: { message, type, icon },
+          }),
+        );
+      };
+
+      document.addEventListener('alpine:init', () => {
+        Alpine.data('app', ({ projectId, initialCounts }) => ({
+          projectId,
+          counts: initialCounts,
+
+          async fetchCounts() {
+            try {
+              const newCounts = await window.ApiService.projects.getCounts(
+                this.projectId,
+              );
+
+              // Simple change detection for toasts
+              if (newCounts.testing > this.counts.testing) {
+                window.notify(
+                  'A background task has finished execution',
+                  'success',
+                  'fa-circle-check',
+                );
+              } else if (newCounts.executing > this.counts.executing) {
+                window.notify(
+                  'A background task has started running',
+                  'info',
+                  'fa-play',
+                );
+              }
+
+              this.counts = newCounts;
+            } catch (e) {
+              console.error('Failed to fetch sidebar counts', e);
+            }
+          },
+        }));
+      });
     </script>
     <script>
-        import { ApiService } from '../lib/api-service.js';
-        window.ApiService = ApiService;
+      import { ApiService } from '../lib/api-service.js';
+      window.ApiService = ApiService;
     </script>
-</body>
+  </body>
 </html>

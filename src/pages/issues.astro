@@ -243,7 +243,10 @@ const title = project
       async fetchIssues() {
         this.loading = true;
         try {
-          this.issues = await window.ApiService.issues.getAll(this.projectId, this.status);
+          this.issues = await window.ApiService.issues.getAll(
+            this.projectId,
+            this.status,
+          );
         } catch (e) {
           console.error(e);
         } finally {
@@ -294,6 +297,7 @@ const title = project
           );
         } finally {
           this.submitting = false;
+          await this.fetchCounts();
         }
       },
     }));

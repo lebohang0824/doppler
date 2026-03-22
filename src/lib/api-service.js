@@ -19,7 +19,7 @@ export const ApiService = {
       const url = new URL('/api/issues', window.location.origin);
       if (projectId) url.searchParams.append('project_id', projectId);
       if (status) url.searchParams.append('status', status);
-      
+
       const res = await fetch(url);
       if (!res.ok) throw new Error('Failed to fetch issues');
       return await res.json();
@@ -40,7 +40,7 @@ export const ApiService = {
         const data = await res.json();
         throw new Error(data.error || 'Failed to create issue');
       }
-      return await res.json();
+      return null;
     },
 
     async update(id, data) {

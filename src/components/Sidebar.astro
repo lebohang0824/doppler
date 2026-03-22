@@ -1,42 +1,11 @@
 ---
-import { db, Issue, eq, count } from 'astro:db';
-
 const { projectId } = Astro.props;
-
-const initialCounts = {
-  todo: 0,
-  queued: 0,
-  executing: 0,
-  testing: 0,
-  done: 0,
-};
-
-if (projectId) {
-  try {
-    const results = await db
-      .select({ status: Issue.status, count: count() })
-      .from(Issue)
-      .where(eq(Issue.project_id, projectId))
-      .groupBy(Issue.status);
-
-    results.forEach((row) => {
-      const status = row.status.toLowerCase();
-      if (initialCounts.hasOwnProperty(status)) {
-        initialCounts[status] = row.count;
-      }
-    });
-  } catch (e) {
-    console.error('Error fetching initial counts:', e);
-  }
-}
 
 const currentPath = Astro.url.pathname;
 const projectQuery = projectId ? `?project_id=${projectId}` : '';
 ---
 
-<aside
-  class='sidebar'
-  x-data={`sidebar({ projectId: '${projectId || ''}', initialCounts: ${JSON.stringify(initialCounts)} })`}>
+<aside class='sidebar'>
   <div class='logo'>
     <i class='fa-solid fa-satellite-dish fa-xl'></i>
     <h2>Doppler</h2>
@@ -147,54 +116,6 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
     </div>
   </nav>
 </aside>
-
-<script is:inline>
-  if (!window.sidebarInitialized) {
-    window.sidebarInitialized = true;
-    document.addEventListener('alpine:init', () => {
-      Alpine.data('sidebar', ({ projectId, initialCounts }) => ({
-        projectId,
-        counts: initialCounts,
-
-        async init() {
-          if (!this.projectId) return;
-
-          // Poll for updates every 5 seconds
-          setInterval(() => {
-            this.fetchCounts();
-          }, 5000);
-        },
-
-        async fetchCounts() {
-          try {
-            const newCounts = await window.ApiService.projects.getCounts(
-              this.projectId,
-            );
-
-            // Simple change detection for toasts
-            if (newCounts.testing > this.counts.testing) {
-              window.notify(
-                'A background task has finished execution',
-                'success',
-                'fa-circle-check',
-              );
-            } else if (newCounts.executing > this.counts.executing) {
-              window.notify(
-                'A background task has started running',
-                'info',
-                'fa-play',
-              );
-            }
-
-            this.counts = newCounts;
-          } catch (e) {
-            console.error('Failed to fetch sidebar counts', e);
-          }
-        },
-      }));
-    });
-  }
-</script>
 
 <style>
   .sidebar {

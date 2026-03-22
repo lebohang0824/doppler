@@ -193,6 +193,8 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
             this.attachments = data.attachments || [];
           } catch (e) {
             console.error('Failed to fetch status', e);
+          } finally {
+            await this.fetchCounts();
           }
         },
 
@@ -209,7 +211,10 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
         async updateIssue() {
           this.submitting = true;
           try {
-            const updated = await window.ApiService.issues.update(this.id, this.editForm);
+            const updated = await window.ApiService.issues.update(
+              this.id,
+              this.editForm,
+            );
             this.title = updated.title;
             this.description = updated.description;
             this.type = updated.type;
@@ -230,6 +235,7 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
             );
           } finally {
             this.submitting = false;
+            await this.fetchCounts();
           }
         },
 
@@ -293,6 +299,7 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
             );
           } finally {
             this.isExecuting = false;
+            await this.fetchCounts();
           }
         },
 
@@ -312,13 +319,17 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
             );
           } finally {
             this.isCancelling = false;
+            await this.fetchCounts();
           }
         },
 
         async approveIssue() {
           this.submitting = true;
           try {
-            await window.ApiService.issues.approve(this.id, this.approvalMessage);
+            await window.ApiService.issues.approve(
+              this.id,
+              this.approvalMessage,
+            );
             window.notify(
               'Issue approved and committed',
               'success',
@@ -336,13 +347,17 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
             );
           } finally {
             this.submitting = false;
+            await this.fetchCounts();
           }
         },
 
         async rejectIssue() {
           this.submitting = true;
           try {
-            await window.ApiService.issues.reject(this.id, this.rejectionReason);
+            await window.ApiService.issues.reject(
+              this.id,
+              this.rejectionReason,
+            );
             window.notify(
               'Issue rejected and reverted',
               'warning',
@@ -360,6 +375,7 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
             );
           } finally {
             this.submitting = false;
+            await this.fetchCounts();
           }
         },
 
@@ -385,6 +401,7 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
           } finally {
             this.submitting = false;
             this.modals.delete = false;
+            await this.fetchCounts();
           }
         },
       }),
