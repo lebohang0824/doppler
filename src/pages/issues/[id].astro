@@ -11,13 +11,13 @@ import IssueModals from '../../components/issues/IssueModals.astro';
 const { id } = Astro.params;
 
 if (!id) {
-    return Astro.redirect('/issues');
+  return Astro.redirect('/issues');
 }
 
 const issue = await IssueService.getById(id);
 
 if (!issue) {
-    return Astro.redirect('/issues');
+  return Astro.redirect('/issues');
 }
 
 const project = await ProjectService.getById(issue.project_id);
@@ -26,8 +26,11 @@ const title = `Issue #${id.slice(0, 8)} - ${issue.title}`;
 const createdAtFormatted = new Date(issue.created_at).toLocaleString();
 ---
 
-<DashboardLayout title={title} projectId={issue.project_id}>
-  <div x-data={`issueDetail({ 
+<DashboardLayout
+  title={title}
+  projectId={issue.project_id}>
+  <div
+    x-data={`issueDetail({ 
     id: '${id}', 
     projectId: '${issue.project_id}', 
     initialStatus: '${issue.status}',
@@ -38,20 +41,22 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
     initialAttachments: ${JSON.stringify(issue.attachments)},
     initialUpdatedAt: '${issue.updated_at.toISOString()}'
   })`}>
-    
     <IssueHeader />
 
-    <div class="dashboard-content">
-        <div class="cards-grid">
-            <div class="main-column">
-                <IssueDetailsCard projectName={project?.name} createdAt={createdAtFormatted} />
-                <ExecutionResultsCard />
-            </div>
-
-            <div class="side-column">
-                <IssueHistoryCard />
-            </div>
+    <div class='dashboard-content'>
+      <div class='cards-grid'>
+        <div class='main-column'>
+          <IssueDetailsCard
+            projectName={project?.name}
+            createdAt={createdAtFormatted}
+          />
+          <ExecutionResultsCard />
         </div>
+
+        <div class='side-column'>
+          <IssueHistoryCard />
+        </div>
+      </div>
     </div>
 
     <IssueModals />
@@ -60,330 +65,417 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
 
 <script is:inline>
   document.addEventListener('alpine:init', () => {
-    Alpine.data('issueDetail', ({ id, projectId, initialStatus, initialTitle, initialDescription, initialType, initialPriority, initialAttachments, initialUpdatedAt }) => ({
-      id,
-      projectId,
-      status: initialStatus || '',
-      title: initialTitle,
-      description: initialDescription,
-      type: initialType,
-      priority: initialPriority,
-      attachments: initialAttachments || [],
-      updatedAt: initialUpdatedAt ? new Date(initialUpdatedAt) : new Date(),
-      elapsedTime: '0s',
-      isExecuting: false,
-      isCancelling: false,
-      submitting: false,
-      logs: [],
-      reports: [],
-      loadingLogs: true,
-      loadingReports: true,
-      selectedModel: null,
-      
-      modals: {
-        approve: false,
-        reject: false,
-        delete: false,
-        edit: false,
-      },
-      approvalMessage: '',
-      rejectionReason: '',
-      editForm: {
-        title: '',
-        description: '',
-        type: '',
-        priority: ''
-      },
-      
-      async init() {
-        this.loadSelectedModel();
-        await this.fetchStatus();
-        await this.fetchLogs();
-        await this.fetchReports();
-        
-        // Timer for elapsed time
-        setInterval(() => {
-          if (this.status === 'executing' && this.updatedAt) {
-            const diff = Math.floor((new Date() - new Date(this.updatedAt)) / 1000);
-            if (diff < 60) {
-              this.elapsedTime = `${diff}s`;
-            } else if (diff < 3600) {
-              const mins = Math.floor(diff / 60);
-              const secs = diff % 60;
-              this.elapsedTime = `${mins}m ${secs}s`;
-            } else {
-              const hours = Math.floor(diff / 3600);
-              const mins = Math.floor((diff % 3600) / 60);
-              this.elapsedTime = `${hours}h ${mins}m`;
-            }
-          }
-        }, 1000);
+    Alpine.data(
+      'issueDetail',
+      ({
+        id,
+        projectId,
+        initialStatus,
+        initialTitle,
+        initialDescription,
+        initialType,
+        initialPriority,
+        initialAttachments,
+        initialUpdatedAt,
+      }) => ({
+        id,
+        projectId,
+        status: initialStatus || '',
+        title: initialTitle,
+        description: initialDescription,
+        type: initialType,
+        priority: initialPriority,
+        attachments: initialAttachments || [],
+        updatedAt: initialUpdatedAt ? new Date(initialUpdatedAt) : new Date(),
+        elapsedTime: '0s',
+        isExecuting: false,
+        isCancelling: false,
+        submitting: false,
+        logs: [],
+        reports: [],
+        loadingLogs: true,
+        loadingReports: true,
+        selectedModel: null,
 
-        // Auto refresh if executing
-        setInterval(() => {
+        modals: {
+          approve: false,
+          reject: false,
+          delete: false,
+          edit: false,
+        },
+        approvalMessage: '',
+        rejectionReason: '',
+        editForm: {
+          title: '',
+          description: '',
+          type: '',
+          priority: '',
+        },
+
+        async init() {
+          this.loadSelectedModel();
+          await this.fetchStatus();
+          await this.fetchLogs();
+          await this.fetchReports();
+
+          // Timer for elapsed time
+          setInterval(() => {
+            if (this.status === 'executing' && this.updatedAt) {
+              const diff = Math.floor(
+                (new Date() - new Date(this.updatedAt)) / 1000,
+              );
+              if (diff < 60) {
+                this.elapsedTime = `${diff}s`;
+              } else if (diff < 3600) {
+                const mins = Math.floor(diff / 60);
+                const secs = diff % 60;
+                this.elapsedTime = `${mins}m ${secs}s`;
+              } else {
+                const hours = Math.floor(diff / 3600);
+                const mins = Math.floor((diff % 3600) / 60);
+                this.elapsedTime = `${hours}h ${mins}m`;
+              }
+            }
+          }, 1000);
+
+          // Auto refresh if executing
+          setInterval(() => {
             this.fetchStatus();
             if (this.status === 'executing' || this.status === 'queued') {
-                this.fetchLogs();
-                this.fetchReports();
+              this.fetchLogs();
+              this.fetchReports();
             }
-        }, 3000);
-      },
+          }, 3000);
+        },
 
-      async loadSelectedModel() {
-        try {
-          const localModel = localStorage.getItem('selectedModel');
-          if (localModel) {
-            this.selectedModel = JSON.parse(localModel);
-          }
+        async loadSelectedModel() {
+          try {
+            const localModel = localStorage.getItem('selectedModel');
+            if (localModel) {
+              this.selectedModel = JSON.parse(localModel);
+            }
 
-          const res = await fetch('/api/settings/selected');
-          if (res.ok) {
-            const data = await res.json();
-            this.selectedModel = data;
-            localStorage.setItem('selectedModel', JSON.stringify(data));
+            const res = await fetch('/api/settings/selected');
+            if (res.ok) {
+              const data = await res.json();
+              this.selectedModel = data;
+              localStorage.setItem('selectedModel', JSON.stringify(data));
+            }
+          } catch (e) {
+            console.error('Failed to load selected model:', e);
           }
-        } catch (e) {
-          console.error('Failed to load selected model:', e);
-        }
-      },
-      
-      async fetchStatus() {
-        try {
+        },
+
+        async fetchStatus() {
+          try {
             const res = await fetch(`/api/issues/${this.id}`);
             if (res.ok) {
-                const data = await res.json();
-                if (this.status === 'executing' && data.status === 'testing') {
-                    window.notify('Execution completed! Move to testing.', 'success', 'fa-circle-check');
-                } else if (this.status === 'queued' && data.status === 'executing') {
-                    window.notify('Execution started!', 'info', 'fa-play');
-                }
-                
-                // Update updatedAt if status changed
-                if (this.status !== data.status) {
-                    this.updatedAt = data.updated_at;
-                }
-                
-                this.status = data.status;
-                // Update other fields too in case they changed elsewhere
-                this.title = data.title;
-                this.description = data.description;
-                this.type = data.type;
-                this.priority = data.priority;
-                this.attachments = data.attachments || [];
+              const data = await res.json();
+              if (this.status === 'executing' && data.status === 'testing') {
+                window.notify(
+                  'Execution completed! Move to testing.',
+                  'success',
+                  'fa-circle-check',
+                );
+              } else if (
+                this.status === 'queued' &&
+                data.status === 'executing'
+              ) {
+                window.notify('Execution started!', 'info', 'fa-play');
+              }
+
+              // Update updatedAt if status changed
+              if (this.status !== data.status) {
+                this.updatedAt = data.updated_at;
+              }
+
+              this.status = data.status;
+              // Update other fields too in case they changed elsewhere
+              this.title = data.title;
+              this.description = data.description;
+              this.type = data.type;
+              this.priority = data.priority;
+              this.attachments = data.attachments || [];
             }
-        } catch (e) {
+          } catch (e) {
             console.error('Failed to fetch status', e);
-        }
-      },
-      
-      openEdit() {
-        this.editForm = {
+          }
+        },
+
+        openEdit() {
+          this.editForm = {
             title: this.title,
             description: this.description,
             type: this.type,
-            priority: this.priority
-        };
-        this.modals.edit = true;
-      },
+            priority: this.priority,
+          };
+          this.modals.edit = true;
+        },
 
-      async updateIssue() {
-        this.submitting = true;
-        try {
+        async updateIssue() {
+          this.submitting = true;
+          try {
             const res = await fetch(`/api/issues/${this.id}`, {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(this.editForm)
+              method: 'PATCH',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(this.editForm),
             });
             if (res.ok) {
-                const updated = await res.json();
-                this.title = updated.title;
-                this.description = updated.description;
-                this.type = updated.type;
-                this.priority = updated.priority;
-                window.notify('Issue updated successfully', 'success', 'fa-circle-check');
-                this.modals.edit = false;
-                await this.fetchLogs();
+              const updated = await res.json();
+              this.title = updated.title;
+              this.description = updated.description;
+              this.type = updated.type;
+              this.priority = updated.priority;
+              window.notify(
+                'Issue updated successfully',
+                'success',
+                'fa-circle-check',
+              );
+              this.modals.edit = false;
+              await this.fetchLogs();
             } else {
-                const data = await res.json();
-                window.notify(data.error || 'Update failed', 'error', 'fa-circle-exclamation');
+              const data = await res.json();
+              window.notify(
+                data.error || 'Update failed',
+                'error',
+                'fa-circle-exclamation',
+              );
             }
-        } catch (e) {
+          } catch (e) {
             console.error('Update error', e);
-            window.notify('An error occurred', 'error', 'fa-circle-exclamation');
-        } finally {
+            window.notify(
+              'An error occurred',
+              'error',
+              'fa-circle-exclamation',
+            );
+          } finally {
             this.submitting = false;
-        }
-      },
-      
-      async fetchLogs() {
-        this.loadingLogs = true;
-        try {
+          }
+        },
+
+        async fetchLogs() {
+          this.loadingLogs = true;
+          try {
             const res = await fetch(`/api/issues/${this.id}/logs`);
             if (res.ok) {
-                this.logs = await res.json();
+              this.logs = await res.json();
             }
-        } finally {
+          } finally {
             this.loadingLogs = false;
-        }
-      },
+          }
+        },
 
-      async fetchReports() {
-        this.loadingReports = true;
-        try {
+        async fetchReports() {
+          this.loadingReports = true;
+          try {
             const res = await fetch(`/api/issues/${this.id}/reports`);
             if (res.ok) {
-                this.reports = await res.json();
+              this.reports = await res.json();
             }
-        } finally {
+          } finally {
             this.loadingReports = false;
-        }
-      },
+          }
+        },
 
-      parseFiles(report) {
-        if (!report.files_changed) return [];
-        if (Array.isArray(report.files_changed)) return report.files_changed;
-        try {
+        parseFiles(report) {
+          if (!report.files_changed) return [];
+          if (Array.isArray(report.files_changed)) return report.files_changed;
+          try {
             return JSON.parse(report.files_changed);
-        } catch (e) {
+          } catch (e) {
             console.error('Failed to parse files_changed', e);
             return [];
-        }
-      },
+          }
+        },
 
-      formatDuration(secs) {
-        if (!secs) return '';
-        if (secs < 60) return `${secs}s`;
-        const mins = Math.floor(secs / 60);
-        const remSecs = secs % 60;
-        return remSecs > 0 ? `${mins}m ${remSecs}s` : `${mins}m`;
-      },
-      
-      async executeIssue() {
-        this.isExecuting = true;
-        try {
-            const res = await fetch(`/api/issues/${this.id}/execute`, { method: 'POST' });
+        formatDuration(secs) {
+          if (!secs) return '';
+          if (secs < 60) return `${secs}s`;
+          const mins = Math.floor(secs / 60);
+          const remSecs = secs % 60;
+          return remSecs > 0 ? `${mins}m ${remSecs}s` : `${mins}m`;
+        },
+
+        async executeIssue() {
+          this.isExecuting = true;
+          try {
+            const res = await fetch(`/api/issues/${this.id}/execute`, {
+              method: 'POST',
+            });
             if (res.ok) {
-                const data = await res.json();
-                this.status = data.status;
-                window.notify(this.status === 'queued' ? 'Task added to queue' : 'Execution started', 'info', this.status === 'queued' ? 'fa-clock' : 'fa-play');
-                this.fetchLogs();
+              const data = await res.json();
+              this.status = data.status;
+              window.notify(
+                this.status === 'queued'
+                  ? 'Task added to queue'
+                  : 'Execution started',
+                'info',
+                this.status === 'queued' ? 'fa-clock' : 'fa-play',
+              );
+              this.fetchLogs();
+              this.updatedAt = new Date();
             } else {
-                window.notify('Failed to start execution', 'error', 'fa-circle-exclamation');
+              window.notify(
+                'Failed to start execution',
+                'error',
+                'fa-circle-exclamation',
+              );
             }
-        } catch (e) {
+          } catch (e) {
             console.error('Execution error', e);
-            window.notify('An error occurred', 'error', 'fa-circle-exclamation');
-        } finally {
+            window.notify(
+              'An error occurred',
+              'error',
+              'fa-circle-exclamation',
+            );
+          } finally {
             this.isExecuting = false;
-        }
-      },
+          }
+        },
 
-      async cancelExecution() {
-        this.isCancelling = true;
-        try {
-            const res = await fetch(`/api/issues/${this.id}/cancel`, { method: 'POST' });
+        async cancelExecution() {
+          this.isCancelling = true;
+          try {
+            const res = await fetch(`/api/issues/${this.id}/cancel`, {
+              method: 'POST',
+            });
             if (res.ok) {
-                const data = await res.json();
-                this.status = data.status;
-                window.notify('Execution cancelled', 'info', 'fa-stop');
-                this.fetchLogs();
+              const data = await res.json();
+              this.status = data.status;
+              window.notify('Execution cancelled', 'info', 'fa-stop');
+              this.fetchLogs();
             } else {
-                const data = await res.json();
-                window.notify(data.error || 'Failed to cancel execution', 'error', 'fa-circle-exclamation');
+              const data = await res.json();
+              window.notify(
+                data.error || 'Failed to cancel execution',
+                'error',
+                'fa-circle-exclamation',
+              );
             }
-        } catch (e) {
+          } catch (e) {
             console.error('Cancel error', e);
-            window.notify('An error occurred', 'error', 'fa-circle-exclamation');
-        } finally {
+            window.notify(
+              'An error occurred',
+              'error',
+              'fa-circle-exclamation',
+            );
+          } finally {
             this.isCancelling = false;
-        }
-      },
+          }
+        },
 
-      async approveIssue() {
-        this.submitting = true;
-        try {
+        async approveIssue() {
+          this.submitting = true;
+          try {
             const res = await fetch(`/api/issues/${this.id}/approve`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ message: this.approvalMessage })
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ message: this.approvalMessage }),
             });
             if (res.ok) {
-                window.notify('Issue approved and committed', 'success', 'fa-circle-check');
-                this.modals.approve = false;
-                this.approvalMessage = '';
-                await this.fetchStatus();
-                await this.fetchLogs();
+              window.notify(
+                'Issue approved and committed',
+                'success',
+                'fa-circle-check',
+              );
+              this.modals.approve = false;
+              this.approvalMessage = '';
+              await this.fetchStatus();
+              await this.fetchLogs();
             } else {
-                const data = await res.json();
-                window.notify(data.error || 'Approval failed', 'error', 'fa-circle-exclamation');
+              const data = await res.json();
+              window.notify(
+                data.error || 'Approval failed',
+                'error',
+                'fa-circle-exclamation',
+              );
             }
-        } finally {
+          } finally {
             this.submitting = false;
-        }
-      },
+          }
+        },
 
-      async rejectIssue() {
-        this.submitting = true;
-        try {
+        async rejectIssue() {
+          this.submitting = true;
+          try {
             const res = await fetch(`/api/issues/${this.id}/reject`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ reason: this.rejectionReason })
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ reason: this.rejectionReason }),
             });
             if (res.ok) {
-                window.notify('Issue rejected and reverted', 'warning', 'fa-circle-xmark');
-                this.modals.reject = false;
-                this.rejectionReason = '';
-                await this.fetchStatus();
-                await this.fetchLogs();
+              window.notify(
+                'Issue rejected and reverted',
+                'warning',
+                'fa-circle-xmark',
+              );
+              this.modals.reject = false;
+              this.rejectionReason = '';
+              await this.fetchStatus();
+              await this.fetchLogs();
             } else {
-                const data = await res.json();
-                window.notify(data.error || 'Rejection failed', 'error', 'fa-circle-exclamation');
+              const data = await res.json();
+              window.notify(
+                data.error || 'Rejection failed',
+                'error',
+                'fa-circle-exclamation',
+              );
             }
-        } finally {
+          } finally {
             this.submitting = false;
-        }
-      },
+          }
+        },
 
-      deleteIssue() {
-        this.modals.delete = true;
-      },
+        deleteIssue() {
+          this.modals.delete = true;
+        },
 
-      async confirmDelete() {
-        this.submitting = true;
-        try {
-            const res = await fetch(`/api/issues/${this.id}`, { method: 'DELETE' });
+        async confirmDelete() {
+          this.submitting = true;
+          try {
+            const res = await fetch(`/api/issues/${this.id}`, {
+              method: 'DELETE',
+            });
             if (res.ok) {
-                window.notify('Issue deleted', 'success', 'fa-trash-can');
-                setTimeout(() => {
-                    window.location.href = `/issues?project_id=${this.projectId}`;
-                }, 1000);
+              window.notify('Issue deleted', 'success', 'fa-trash-can');
+              setTimeout(() => {
+                window.location.href = `/issues?project_id=${this.projectId}`;
+              }, 1000);
             } else {
-                window.notify('Failed to delete issue', 'error', 'fa-circle-exclamation');
+              window.notify(
+                'Failed to delete issue',
+                'error',
+                'fa-circle-exclamation',
+              );
             }
-        } catch (e) {
+          } catch (e) {
             console.error('Delete error', e);
-            window.notify('An error occurred', 'error', 'fa-circle-exclamation');
-        } finally {
+            window.notify(
+              'An error occurred',
+              'error',
+              'fa-circle-exclamation',
+            );
+          } finally {
             this.submitting = false;
             this.modals.delete = false;
-        }
-      }
-    }));
+          }
+        },
+      }),
+    );
   });
 </script>
 
 <style>
   .cards-grid {
-      display: grid;
-      grid-template-columns: 2fr 1fr;
-      gap: 1.5rem;
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
   }
 
   @media (max-width: 768px) {
-      .cards-grid {
-          grid-template-columns: 1fr;
-      }
+    .cards-grid {
+      grid-template-columns: 1fr;
+    }
   }
 
   /* CLI Required Modal */
