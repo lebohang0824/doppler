@@ -155,12 +155,9 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
               this.selectedModel = JSON.parse(localModel);
             }
 
-            const res = await fetch('/api/settings/selected');
-            if (res.ok) {
-              const data = await res.json();
-              this.selectedModel = data;
-              localStorage.setItem('selectedModel', JSON.stringify(data));
-            }
+            const data = await window.ApiService.settings.getSelected();
+            this.selectedModel = data;
+            localStorage.setItem('selectedModel', JSON.stringify(data));
           } catch (e) {
             console.error('Failed to load selected model:', e);
           }
@@ -168,35 +165,32 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
 
         async fetchStatus() {
           try {
-            const res = await fetch(`/api/issues/${this.id}`);
-            if (res.ok) {
-              const data = await res.json();
-              if (this.status === 'executing' && data.status === 'testing') {
-                window.notify(
-                  'Execution completed! Move to testing.',
-                  'success',
-                  'fa-circle-check',
-                );
-              } else if (
-                this.status === 'queued' &&
-                data.status === 'executing'
-              ) {
-                window.notify('Execution started!', 'info', 'fa-play');
-              }
-
-              // Update updatedAt if status changed
-              if (this.status !== data.status) {
-                this.updatedAt = data.updated_at;
-              }
-
-              this.status = data.status;
-              // Update other fields too in case they changed elsewhere
-              this.title = data.title;
-              this.description = data.description;
-              this.type = data.type;
-              this.priority = data.priority;
-              this.attachments = data.attachments || [];
+            const data = await window.ApiService.issues.getById(this.id);
+            if (this.status === 'executing' && data.status === 'testing') {
+              window.notify(
+                'Execution completed! Move to testing.',
+                'success',
+                'fa-circle-check',
+              );
+            } else if (
+              this.status === 'queued' &&
+              data.status === 'executing'
+            ) {
+              window.notify('Execution started!', 'info', 'fa-play');
             }
+
+            // Update updatedAt if status changed
+            if (this.status !== data.status) {
+              this.updatedAt = data.updated_at;
+            }
+
+            this.status = data.status;
+            // Update other fields too in case they changed elsewhere
+            this.title = data.title;
+            this.description = data.description;
+            this.type = data.type;
+            this.priority = data.priority;
+            this.attachments = data.attachments || [];
           } catch (e) {
             console.error('Failed to fetch status', e);
           }
@@ -215,36 +209,22 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
         async updateIssue() {
           this.submitting = true;
           try {
-            const res = await fetch(`/api/issues/${this.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(this.editForm),
-            });
-            if (res.ok) {
-              const updated = await res.json();
-              this.title = updated.title;
-              this.description = updated.description;
-              this.type = updated.type;
-              this.priority = updated.priority;
-              window.notify(
-                'Issue updated successfully',
-                'success',
-                'fa-circle-check',
-              );
-              this.modals.edit = false;
-              await this.fetchLogs();
-            } else {
-              const data = await res.json();
-              window.notify(
-                data.error || 'Update failed',
-                'error',
-                'fa-circle-exclamation',
-              );
-            }
+            const updated = await window.ApiService.issues.update(this.id, this.editForm);
+            this.title = updated.title;
+            this.description = updated.description;
+            this.type = updated.type;
+            this.priority = updated.priority;
+            window.notify(
+              'Issue updated successfully',
+              'success',
+              'fa-circle-check',
+            );
+            this.modals.edit = false;
+            await this.fetchLogs();
           } catch (e) {
             console.error('Update error', e);
             window.notify(
-              'An error occurred',
+              e.message || 'An error occurred',
               'error',
               'fa-circle-exclamation',
             );
@@ -256,10 +236,7 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
         async fetchLogs() {
           this.loadingLogs = true;
           try {
-            const res = await fetch(`/api/issues/${this.id}/logs`);
-            if (res.ok) {
-              this.logs = await res.json();
-            }
+            this.logs = await window.ApiService.issues.getLogs(this.id);
           } finally {
             this.loadingLogs = false;
           }
@@ -268,10 +245,7 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
         async fetchReports() {
           this.loadingReports = true;
           try {
-            const res = await fetch(`/api/issues/${this.id}/reports`);
-            if (res.ok) {
-              this.reports = await res.json();
-            }
+            this.reports = await window.ApiService.issues.getReports(this.id);
           } finally {
             this.loadingReports = false;
           }
@@ -299,32 +273,21 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
         async executeIssue() {
           this.isExecuting = true;
           try {
-            const res = await fetch(`/api/issues/${this.id}/execute`, {
-              method: 'POST',
-            });
-            if (res.ok) {
-              const data = await res.json();
-              this.status = data.status;
-              window.notify(
-                this.status === 'queued'
-                  ? 'Task added to queue'
-                  : 'Execution started',
-                'info',
-                this.status === 'queued' ? 'fa-clock' : 'fa-play',
-              );
-              this.fetchLogs();
-              this.updatedAt = new Date();
-            } else {
-              window.notify(
-                'Failed to start execution',
-                'error',
-                'fa-circle-exclamation',
-              );
-            }
+            const data = await window.ApiService.issues.execute(this.id);
+            this.status = data.status;
+            window.notify(
+              this.status === 'queued'
+                ? 'Task added to queue'
+                : 'Execution started',
+              'info',
+              this.status === 'queued' ? 'fa-clock' : 'fa-play',
+            );
+            this.fetchLogs();
+            this.updatedAt = new Date();
           } catch (e) {
             console.error('Execution error', e);
             window.notify(
-              'An error occurred',
+              'Failed to start execution',
               'error',
               'fa-circle-exclamation',
             );
@@ -336,26 +299,14 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
         async cancelExecution() {
           this.isCancelling = true;
           try {
-            const res = await fetch(`/api/issues/${this.id}/cancel`, {
-              method: 'POST',
-            });
-            if (res.ok) {
-              const data = await res.json();
-              this.status = data.status;
-              window.notify('Execution cancelled', 'info', 'fa-stop');
-              this.fetchLogs();
-            } else {
-              const data = await res.json();
-              window.notify(
-                data.error || 'Failed to cancel execution',
-                'error',
-                'fa-circle-exclamation',
-              );
-            }
+            const data = await window.ApiService.issues.cancel(this.id);
+            this.status = data.status;
+            window.notify('Execution cancelled', 'info', 'fa-stop');
+            this.fetchLogs();
           } catch (e) {
             console.error('Cancel error', e);
             window.notify(
-              'An error occurred',
+              e.message || 'An error occurred',
               'error',
               'fa-circle-exclamation',
             );
@@ -367,29 +318,22 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
         async approveIssue() {
           this.submitting = true;
           try {
-            const res = await fetch(`/api/issues/${this.id}/approve`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ message: this.approvalMessage }),
-            });
-            if (res.ok) {
-              window.notify(
-                'Issue approved and committed',
-                'success',
-                'fa-circle-check',
-              );
-              this.modals.approve = false;
-              this.approvalMessage = '';
-              await this.fetchStatus();
-              await this.fetchLogs();
-            } else {
-              const data = await res.json();
-              window.notify(
-                data.error || 'Approval failed',
-                'error',
-                'fa-circle-exclamation',
-              );
-            }
+            await window.ApiService.issues.approve(this.id, this.approvalMessage);
+            window.notify(
+              'Issue approved and committed',
+              'success',
+              'fa-circle-check',
+            );
+            this.modals.approve = false;
+            this.approvalMessage = '';
+            await this.fetchStatus();
+            await this.fetchLogs();
+          } catch (e) {
+            window.notify(
+              e.message || 'Approval failed',
+              'error',
+              'fa-circle-exclamation',
+            );
           } finally {
             this.submitting = false;
           }
@@ -398,29 +342,22 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
         async rejectIssue() {
           this.submitting = true;
           try {
-            const res = await fetch(`/api/issues/${this.id}/reject`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ reason: this.rejectionReason }),
-            });
-            if (res.ok) {
-              window.notify(
-                'Issue rejected and reverted',
-                'warning',
-                'fa-circle-xmark',
-              );
-              this.modals.reject = false;
-              this.rejectionReason = '';
-              await this.fetchStatus();
-              await this.fetchLogs();
-            } else {
-              const data = await res.json();
-              window.notify(
-                data.error || 'Rejection failed',
-                'error',
-                'fa-circle-exclamation',
-              );
-            }
+            await window.ApiService.issues.reject(this.id, this.rejectionReason);
+            window.notify(
+              'Issue rejected and reverted',
+              'warning',
+              'fa-circle-xmark',
+            );
+            this.modals.reject = false;
+            this.rejectionReason = '';
+            await this.fetchStatus();
+            await this.fetchLogs();
+          } catch (e) {
+            window.notify(
+              e.message || 'Rejection failed',
+              'error',
+              'fa-circle-exclamation',
+            );
           } finally {
             this.submitting = false;
           }
@@ -433,21 +370,11 @@ const createdAtFormatted = new Date(issue.created_at).toLocaleString();
         async confirmDelete() {
           this.submitting = true;
           try {
-            const res = await fetch(`/api/issues/${this.id}`, {
-              method: 'DELETE',
-            });
-            if (res.ok) {
-              window.notify('Issue deleted', 'success', 'fa-trash-can');
-              setTimeout(() => {
-                window.location.href = `/issues?project_id=${this.projectId}`;
-              }, 1000);
-            } else {
-              window.notify(
-                'Failed to delete issue',
-                'error',
-                'fa-circle-exclamation',
-              );
-            }
+            await window.ApiService.issues.delete(this.id);
+            window.notify('Issue deleted', 'success', 'fa-trash-can');
+            setTimeout(() => {
+              window.location.href = `/issues?project_id=${this.projectId}`;
+            }, 1000);
           } catch (e) {
             console.error('Delete error', e);
             window.notify(

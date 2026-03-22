@@ -41,12 +41,9 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
             this.selectedModelId = parsed.model_id;
           }
 
-          const res = await fetch('/api/settings/selected');
-          if (res.ok) {
-            const data = await res.json();
-            this.selectedModelId = data.model_id;
-            localStorage.setItem('selectedModel', JSON.stringify(data));
-          }
+          const data = await window.ApiService.settings.getSelected();
+          this.selectedModelId = data.model_id;
+          localStorage.setItem('selectedModel', JSON.stringify(data));
         } catch (e) {
           console.error('Failed to load selected model:', e);
         }
@@ -54,31 +51,14 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
 
       async selectModel(model) {
         try {
-          const res = await fetch('/api/settings/selected', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              provider: model.provider,
-              model_id: model.id,
-            }),
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            this.selectedModelId = data.model_id;
-            localStorage.setItem('selectedModel', JSON.stringify(data));
-            window.notify(
-              `Model ${model.name} selected`,
-              'success',
-              'fa-check-circle',
-            );
-          } else {
-            window.notify(
-              'Failed to select model',
-              'error',
-              'fa-circle-exclamation',
-            );
-          }
+          const data = await window.ApiService.settings.setSelected(model.provider, model.id);
+          this.selectedModelId = data.model_id;
+          localStorage.setItem('selectedModel', JSON.stringify(data));
+          window.notify(
+            `Model ${model.name} selected`,
+            'success',
+            'fa-check-circle',
+          );
         } catch (e) {
           console.error('Failed to select model:', e);
           window.notify(
@@ -92,10 +72,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       async loadModels() {
         this.loadingModels = true;
         try {
-          const res = await fetch('/api/settings/models');
-          if (res.ok) {
-            this.modelStatusList = await res.json();
-          }
+          this.modelStatusList = await window.ApiService.settings.getModels();
         } catch (e) {
           console.error('Failed to load models:', e);
         } finally {

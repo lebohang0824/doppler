@@ -194,36 +194,22 @@ const projectId = Astro.url.searchParams.get('project_id');
       },
       async submit() {
         this.error = null;
-        const url =
-          this.mode === 'create'
-            ? '/api/projects'
-            : `/api/projects/${this.projectForm.id}`;
-        const method = this.mode === 'create' ? 'POST' : 'PATCH';
-
         try {
-          const res = await fetch(url, {
-            method: method,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(this.projectForm),
-          });
-
-          if (res.ok) {
-            window.notify(
-              this.mode === 'create' ? 'Project created' : 'Project updated',
-              'success',
-              'fa-circle-check',
-            );
-            this.open = false;
-            setTimeout(() => window.location.reload(), 1000);
+          if (this.mode === 'create') {
+            await window.ApiService.projects.create(this.projectForm);
           } else {
-            const result = await res.json();
-            this.error =
-              result.error ||
-              `Failed to ${this.mode === 'create' ? 'create' : 'update'} project`;
-            window.notify(this.error, 'error', 'fa-circle-exclamation');
+            await window.ApiService.projects.update(this.projectForm.id, this.projectForm);
           }
+
+          window.notify(
+            this.mode === 'create' ? 'Project created' : 'Project updated',
+            'success',
+            'fa-circle-check',
+          );
+          this.open = false;
+          setTimeout(() => window.location.reload(), 1000);
         } catch (e) {
-          this.error = 'An error occurred';
+          this.error = e.message || 'An error occurred';
           window.notify(this.error, 'error', 'fa-circle-exclamation');
           console.error(e);
         }
@@ -238,21 +224,12 @@ const projectId = Astro.url.searchParams.get('project_id');
           return;
 
         try {
-          const res = await fetch(`/api/projects/${this.projectForm.id}`, {
-            method: 'DELETE',
-          });
-
-          if (res.status === 204 || res.ok) {
-            window.notify('Project deleted', 'success', 'fa-trash-can');
-            this.open = false;
-            setTimeout(() => window.location.reload(), 1000);
-          } else {
-            const result = await res.json();
-            this.error = result.error || 'Failed to delete project';
-            window.notify(this.error, 'error', 'fa-circle-exclamation');
-          }
+          await window.ApiService.projects.delete(this.projectForm.id);
+          window.notify('Project deleted', 'success', 'fa-trash-can');
+          this.open = false;
+          setTimeout(() => window.location.reload(), 1000);
         } catch (e) {
-          this.error = 'An error occurred';
+          this.error = e.message || 'An error occurred';
           window.notify(this.error, 'error', 'fa-circle-exclamation');
           console.error(e);
         }

@@ -244,13 +244,10 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
 
       async checkCliAvailability() {
         try {
-          const res = await fetch('/api/status');
-          if (res.ok) {
-            const data = await res.json();
-            this.cliAvailable = data.cli;
-            if (!this.cliAvailable.hasAny) {
-              this.modals.cliRequired = true;
-            }
+          const data = await window.ApiService.status.check();
+          this.cliAvailable = data.cli;
+          if (!this.cliAvailable.hasAny) {
+            this.modals.cliRequired = true;
           }
         } catch (e) {
           console.error('Failed to check CLI availability:', e);
@@ -279,12 +276,9 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
 
       async loadModels() {
         try {
-          const res = await fetch('/api/settings/models');
-          if (res.ok) {
-            const models = await res.json();
-            this.geminiModels = models.filter((m) => m.provider === 'gemini');
-            this.opencodeModels = models.filter((m) => m.provider !== 'gemini');
-          }
+          const models = await window.ApiService.settings.getModels();
+          this.geminiModels = models.filter((m) => m.provider === 'gemini');
+          this.opencodeModels = models.filter((m) => m.provider !== 'gemini');
         } catch (e) {
           console.error('Failed to load models:', e);
           this.loadingModel = false;
@@ -293,25 +287,22 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
 
       async loadSelectedModel() {
         try {
-          const res = await fetch('/api/settings/selected');
-          if (res.ok) {
-            const data = await res.json();
-            this.selectedProvider = data.provider;
+          const data = await window.ApiService.settings.getSelected();
+          this.selectedProvider = data.provider;
 
-            const allModels = [...this.geminiModels, ...this.opencodeModels];
-            const savedModel = allModels.find((m) => m.id === data.model_id);
+          const allModels = [...this.geminiModels, ...this.opencodeModels];
+          const savedModel = allModels.find((m) => m.id === data.model_id);
 
-            if (savedModel) {
-              this.selectedModel = savedModel;
-              this.selectedProvider =
-                savedModel.provider === 'gemini' ? 'gemini' : 'opencode';
-            } else if (data.model) {
-              this.selectedModel = data.model;
-              this.selectedProvider =
-                data.model.provider === 'gemini' ? 'gemini' : 'opencode';
-            }
-            this.loadingModel = false;
+          if (savedModel) {
+            this.selectedModel = savedModel;
+            this.selectedProvider =
+              savedModel.provider === 'gemini' ? 'gemini' : 'opencode';
+          } else if (data.model) {
+            this.selectedModel = data.model;
+            this.selectedProvider =
+              data.model.provider === 'gemini' ? 'gemini' : 'opencode';
           }
+          this.loadingModel = false;
         } catch (e) {
           console.error('Failed to load selected model:', e);
           this.loadingModel = false;
@@ -321,14 +312,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       async saveSelectedModel() {
         if (!this.selectedModel) return;
         try {
-          await fetch('/api/settings/selected', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              provider: this.selectedProvider,
-              model_id: this.selectedModel.id,
-            }),
-          });
+          await window.ApiService.settings.setSelected(this.selectedProvider, this.selectedModel.id);
         } catch (e) {
           console.error('Failed to save selected model:', e);
         }
@@ -362,34 +346,17 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         }
 
         try {
-          const res = await fetch('/api/settings/selected', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              provider: model.provider,
-              model_id: model.id,
-            }),
-          });
-
-          if (res.ok) {
-            const data = await res.json();
-            this.modalSelectedModel = {
-              id: data.model_id,
-              name: data.model_id,
-              provider: data.provider,
-            }; // Update modalSelectedModel with full details
-            window.notify(
-              `Model ${model.name} selected`,
-              'success',
-              'fa-check-circle',
-            );
-          } else {
-            window.notify(
-              'Failed to select model',
-              'error',
-              'fa-circle-exclamation',
-            );
-          }
+          const data = await window.ApiService.settings.setSelected(model.provider, model.id);
+          this.modalSelectedModel = {
+            id: data.model_id,
+            name: data.model_id,
+            provider: data.provider,
+          }; // Update modalSelectedModel with full details
+          window.notify(
+            `Model ${model.name} selected`,
+            'success',
+            'fa-check-circle',
+          );
         } catch (e) {
           console.error('Failed to select model:', e);
           window.notify(
@@ -439,14 +406,8 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       fetchProjects() {
         return new Promise(async (resolve) => {
           try {
-            const res = await fetch('/api/projects');
-            if (res.ok) {
-              this.projects = await res.json();
-              resolve();
-            } else {
-              this.projects = [];
-              resolve();
-            }
+            this.projects = await window.ApiService.projects.getAll();
+            resolve();
           } catch (e) {
             console.error('Failed to fetch projects', e);
             this.projects = [];
@@ -475,14 +436,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         if (!this.activeProject) return;
         this.loadingLogs = true;
         try {
-          const res = await fetch(
-            `/api/projects/${this.activeProject.id}/logs`,
-          );
-          if (res.ok) {
-            this.logs = await res.json();
-          } else {
-            this.logs = [];
-          }
+          this.logs = await window.ApiService.projects.getLogs(this.activeProject.id);
         } catch (e) {
           console.error('Failed to fetch logs', e);
           this.logs = [];

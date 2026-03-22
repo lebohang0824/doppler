@@ -167,27 +167,26 @@ const projectQuery = projectId ? `?project_id=${projectId}` : '';
 
         async fetchCounts() {
           try {
-            const res = await fetch(`/api/projects/${this.projectId}/counts`);
-            if (res.ok) {
-              const newCounts = await res.json();
+            const newCounts = await window.ApiService.projects.getCounts(
+              this.projectId,
+            );
 
-              // Simple change detection for toasts
-              if (newCounts.testing > this.counts.testing) {
-                window.notify(
-                  'A background task has finished execution',
-                  'success',
-                  'fa-circle-check',
-                );
-              } else if (newCounts.executing > this.counts.executing) {
-                window.notify(
-                  'A background task has started running',
-                  'info',
-                  'fa-play',
-                );
-              }
-
-              this.counts = newCounts;
+            // Simple change detection for toasts
+            if (newCounts.testing > this.counts.testing) {
+              window.notify(
+                'A background task has finished execution',
+                'success',
+                'fa-circle-check',
+              );
+            } else if (newCounts.executing > this.counts.executing) {
+              window.notify(
+                'A background task has started running',
+                'info',
+                'fa-play',
+              );
             }
+
+            this.counts = newCounts;
           } catch (e) {
             console.error('Failed to fetch sidebar counts', e);
           }

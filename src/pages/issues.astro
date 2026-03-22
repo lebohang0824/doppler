@@ -243,17 +243,7 @@ const title = project
       async fetchIssues() {
         this.loading = true;
         try {
-          const url = new URL('/api/issues', window.location.origin);
-          url.searchParams.append('project_id', this.projectId);
-          if (this.status) {
-            url.searchParams.append('status', this.status);
-          }
-          const res = await fetch(url);
-          if (res.ok) {
-            this.issues = await res.json();
-          } else {
-            console.error('Failed to fetch issues');
-          }
+          this.issues = await window.ApiService.issues.getAll(this.projectId, this.status);
         } catch (e) {
           console.error(e);
         } finally {
@@ -278,38 +268,30 @@ const title = project
             }
           }
 
-          const res = await fetch('/api/issues', {
-            method: 'POST',
-            body: formData,
-          });
-          if (res.ok) {
-            window.notify(
-              'Issue created successfully',
-              'success',
-              'fa-circle-check',
-            );
-            this.showModal = false;
-            await this.fetchIssues();
-            this.issueForm = {
-              project_id: this.projectId,
-              title: '',
-              description: '',
-              type: 'Bug',
-              priority: 'medium',
-              status: this.status || 'todo',
-              files: null,
-            };
-          } else {
-            const data = await res.json();
-            window.notify(
-              data.error || 'Failed to create issue',
-              'error',
-              'fa-circle-exclamation',
-            );
-          }
+          await window.ApiService.issues.create(formData);
+          window.notify(
+            'Issue created successfully',
+            'success',
+            'fa-circle-check',
+          );
+          this.showModal = false;
+          await this.fetchIssues();
+          this.issueForm = {
+            project_id: this.projectId,
+            title: '',
+            description: '',
+            type: 'Bug',
+            priority: 'medium',
+            status: this.status || 'todo',
+            files: null,
+          };
         } catch (e) {
           console.error(e);
-          window.notify('An error occurred', 'error', 'fa-circle-exclamation');
+          window.notify(
+            e.message || 'An error occurred',
+            'error',
+            'fa-circle-exclamation',
+          );
         } finally {
           this.submitting = false;
         }

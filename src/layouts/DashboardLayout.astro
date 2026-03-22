@@ -102,5 +102,9 @@ const projectId = projectIdProp || Astro.url.searchParams.get('project_id');
             }));
         };
     </script>
+    <script>
+        import { ApiService } from '../lib/api-service.js';
+        window.ApiService = ApiService;
+    </script>
 </body>
 </html>
