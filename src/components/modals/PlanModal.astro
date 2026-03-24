@@ -1,0 +1,368 @@
+<div
+  class='modal-overlay'
+  x-show='modals.plan'
+  x-cloak
+  style='display: none;'
+  x-transition.opacity>
+  <div
+    class='modal modal-wide'
+    @click.away='modals.plan = false'>
+    <div class='modal-header'>
+      <h2><i class='fa-solid fa-clipboard-list'></i> Create Project Plan</h2>
+      <button
+        @click='modals.plan = false'
+        class='close-btn'>
+        <i class='fa-solid fa-xmark'></i>
+      </button>
+    </div>
+    <div class='modal-body'>
+      <div class='plan-content'>
+        <div class='plan-model-section'>
+          <label class='section-label'>Select AI Model</label>
+          <div class='model-select-wrapper'>
+            <select
+              x-model='planModal.provider'
+              @change='planModal.modelId = planModalModels[0]?.id'
+              class='model-select'>
+              <option value='gemini'>Gemini CLI</option>
+              <option value='opencode'>Opencode CLI</option>
+            </select>
+            <template x-if='planModal.provider === "gemini"'>
+              <select
+                x-model='planModal.modelId'
+                class='model-select'>
+                <template x-for='model in planModalModels' :key='model.id'>
+                  <option
+                    :value='model.id'
+                    x-text='model.name'></option>
+                </template>
+              </select>
+            </template>
+            <template x-if='planModal.provider === "opencode"'>
+              <select
+                x-model='planModal.modelId'
+                class='model-select'>
+                <template x-for='model in planModalModels' :key='model.id'>
+                  <option
+                    :value='model.id'
+                    x-text='model.name'></option>
+                </template>
+              </select>
+            </template>
+          </div>
+          <button
+            @click='generatePlan()'
+            class='btn btn-primary generate-btn'
+            :disabled='planModal.generating'>
+            <template x-if='!planModal.generating'>
+              <span><i class='fa-solid fa-wand-magic-sparkles'></i> Create a Plan</span>
+            </template>
+            <template x-if='planModal.generating'>
+              <span><i class='fa-solid fa-circle-notch fa-spin'></i> Generating...</span>
+            </template>
+          </button>
+          <template x-if='planModal.error'>
+            <div class='error-message' x-text='planModal.error'></div>
+          </template>
+        </div>
+
+        <template x-if='planModal.tasks.length > 0'>
+          <div class='plan-results'>
+            <div class='tasks-section'>
+              <label class='section-label'>Generated Tasks</label>
+              <div class='tasks-list'>
+                <template
+                  x-for='(task, index) in planModal.tasks'
+                  :key='index'>
+                  <div class='task-item'>
+                    <div class='task-header'>
+                      <span
+                        class='task-title'
+                        x-text='task.title'></span>
+                      <button
+                        class='btn btn-small'
+                        :class="planModal.addedTasks.has(index) ? 'btn-success' : 'btn-primary'"
+                        :disabled='planModal.addedTasks.has(index)'
+                        @click='addTaskToTodo(task, index)'>
+                        <template x-if='!planModal.addedTasks.has(index)'>
+                          <span><i class='fa-solid fa-plus'></i> Add to Todo</span>
+                        </template>
+                        <template x-if='planModal.addedTasks.has(index)'>
+                          <span><i class='fa-solid fa-check'></i> Added</span>
+                        </template>
+                      </button>
+                    </div>
+                    <div
+                      class='task-description'
+                      x-text='task.description'></div>
+                  </div>
+                </template>
+              </div>
+            </div>
+
+            <div class='report-section'>
+              <label class='section-label'>
+                <button
+                  class='toggle-report-btn'
+                  @click='planModal.showReport = !planModal.showReport'>
+                  <i
+                    class='fa-solid'
+                    :class="planModal.showReport ? 'fa-chevron-down' : 'fa-chevron-right'"></i>
+                  Model Report
+                </button>
+              </label>
+              <template x-if='planModal.showReport'>
+                <div class='report-content' x-text='planModal.report'></div>
+              </template>
+            </div>
+          </div>
+        </template>
+      </div>
+    </div>
+    <div class='modal-footer'>
+      <span class='task-count' x-text='planModal.tasks.length + " tasks generated"'></span>
+      <button
+        @click='modals.plan = false'
+        class='btn'>
+        <i class='fa-solid fa-check'></i> Done
+      </button>
+    </div>
+  </div>
+</div>
+
+<style>
+  [x-cloak] {
+    display: none !important;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+    padding: 1rem;
+  }
+
+  .modal {
+    background: white;
+    border-radius: 8px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .modal-wide {
+    max-width: 900px;
+  }
+
+  .modal-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-header h2 {
+    margin: 0;
+    font-size: 1.25rem;
+    color: var(--primary-color);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .close-btn {
+    background: none;
+    border: none;
+    font-size: 1.25rem;
+    cursor: pointer;
+    color: var(--accent-color);
+    padding: 0.25rem;
+    border-radius: 4px;
+  }
+
+  .close-btn:hover {
+    background: var(--bg-color);
+    color: var(--text-color);
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+  }
+
+  .plan-content {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .plan-model-section {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .section-label {
+    font-size: 0.8rem;
+    text-transform: uppercase;
+    color: var(--accent-color);
+    font-weight: bold;
+  }
+
+  .model-select-wrapper {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .model-select {
+    flex: 1;
+    min-width: 150px;
+    padding: 0.625rem 0.75rem;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 0.9rem;
+    background: white;
+    color: var(--text-color);
+  }
+
+  .model-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+  }
+
+  .generate-btn {
+    align-self: flex-start;
+  }
+
+  .error-message {
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #dc2626;
+    padding: 0.75rem 1rem;
+    border-radius: 6px;
+    font-size: 0.9rem;
+  }
+
+  .plan-results {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+  }
+
+  .tasks-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .tasks-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    max-height: 300px;
+    overflow-y: auto;
+  }
+
+  .task-item {
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    padding: 1rem;
+    background: var(--bg-color);
+  }
+
+  .task-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .task-title {
+    font-weight: 600;
+    color: var(--text-color);
+    font-size: 0.95rem;
+  }
+
+  .btn-small {
+    padding: 0.375rem 0.75rem;
+    font-size: 0.8rem;
+    white-space: nowrap;
+  }
+
+  .btn-success {
+    background: #22c55e;
+    color: white;
+    border: none;
+    cursor: default;
+  }
+
+  .task-description {
+    font-size: 0.85rem;
+    color: var(--accent-color);
+    line-height: 1.5;
+  }
+
+  .report-section {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1rem;
+  }
+
+  .toggle-report-btn {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--primary-color);
+    font-size: 0.9rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 0;
+  }
+
+  .toggle-report-btn:hover {
+    text-decoration: underline;
+  }
+
+  .report-content {
+    background: #f8f9fa;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    padding: 1rem;
+    font-family: monospace;
+    font-size: 0.8rem;
+    white-space: pre-wrap;
+    max-height: 200px;
+    overflow-y: auto;
+    color: var(--text-color);
+  }
+
+  .modal-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border-color);
+    background: var(--bg-color);
+    border-radius: 0 0 8px 8px;
+  }
+
+  .task-count {
+    font-size: 0.9rem;
+    color: var(--accent-color);
+  }
+</style>

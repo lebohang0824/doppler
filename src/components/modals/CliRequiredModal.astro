@@ -31,12 +31,12 @@
           </div>
           <div
             class='cli-status'
-            x-show='!cliAvailable.gemini'>
+            x-show='cliAvailable.gemini'>
             <span class='not-installed'>Not Installed</span>
           </div>
           <div
             class='cli-status'
-            x-show='cliAvailable.gemini'>
+            x-show='!cliAvailable.gemini'>
             <span class='installed'
               ><i class='fa-solid fa-check'></i> Ready</span
             >
@@ -60,12 +60,12 @@
           </div>
           <div
             class='cli-status'
-            x-show='!cliAvailable.opencode'>
+            x-show='cliAvailable.opencode'>
             <span class='not-installed'>Not Installed</span>
           </div>
           <div
             class='cli-status'
-            x-show='cliAvailable.opencode'>
+            x-show='!cliAvailable.opencode'>
             <span class='installed'
               ><i class='fa-solid fa-check'></i> Ready</span
             >

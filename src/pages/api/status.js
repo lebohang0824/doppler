@@ -15,8 +15,8 @@ function checkCommand(command) {
 
 export const GET = async () => {
   const now = Date.now();
-  
-  if (cachedResult && (now - cacheTime) < CACHE_TTL) {
+
+  if (cachedResult && now - cacheTime < CACHE_TTL) {
     return new Response(cachedResult, {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

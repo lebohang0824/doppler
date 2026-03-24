@@ -2,6 +2,7 @@
 import CliRequiredModal from '../components/modals/CliRequiredModal.astro';
 import ModelSelectorModal from '../components/modals/ModelSelectorModal.astro';
 import SwitchProjectModal from '../components/modals/SwitchProjectModal.astro';
+import PlanModal from '../components/modals/PlanModal.astro';
 import DashboardLayout from '../layouts/DashboardLayout.astro';
 
 // Read project_id from search params on the server-side
@@ -141,6 +142,11 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
                 class='btn btn-secondary'>
                 <i class='fa-solid fa-gear'></i> Manage Project
               </a>
+              <button
+                @click='openPlanModal()'
+                class='btn btn-primary'>
+                <i class='fa-solid fa-clipboard-list'></i> Create Plan
+              </button>
             </div>
           </div>
         </div>
@@ -167,6 +173,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
     <SwitchProjectModal />
     <CliRequiredModal />
     <ModelSelectorModal />
+    <PlanModal />
   </div>
 </DashboardLayout>
 
@@ -181,6 +188,7 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         switchProject: false,
         cliRequired: false,
         modelSelector: false,
+        plan: false,
       },
       modelFilterTier: 'all',
       submitting: false,
@@ -199,6 +207,25 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       selectedModel: null,
       modalSelectedModel: null,
       loadingModel: true,
+
+      // Plan Modal State
+      planModal: {
+        provider: 'gemini',
+        modelId: null,
+        generating: false,
+        tasks: [],
+        report: '',
+        error: '',
+        addedTasks: new Set(),
+        showReport: false,
+      },
+
+      get planModalModels() {
+        if (this.planModal.provider === 'opencode') {
+          return this.opencodeModels;
+        }
+        return this.geminiModels;
+      },
 
       get availableProviders() {
         return Object.entries(this.cliAvailable)
@@ -312,7 +339,10 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
       async saveSelectedModel() {
         if (!this.selectedModel) return;
         try {
-          await window.ApiService.settings.setSelected(this.selectedProvider, this.selectedModel.id);
+          await window.ApiService.settings.setSelected(
+            this.selectedProvider,
+            this.selectedModel.id,
+          );
         } catch (e) {
           console.error('Failed to save selected model:', e);
         }
@@ -346,7 +376,10 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         }
 
         try {
-          const data = await window.ApiService.settings.setSelected(model.provider, model.id);
+          const data = await window.ApiService.settings.setSelected(
+            model.provider,
+            model.id,
+          );
           this.modalSelectedModel = {
             id: data.model_id,
             name: data.model_id,
@@ -436,12 +469,105 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
         if (!this.activeProject) return;
         this.loadingLogs = true;
         try {
-          this.logs = await window.ApiService.projects.getLogs(this.activeProject.id);
+          this.logs = await window.ApiService.projects.getLogs(
+            this.activeProject.id,
+          );
         } catch (e) {
           console.error('Failed to fetch logs', e);
           this.logs = [];
         } finally {
           this.loadingLogs = false;
+        }
+      },
+
+      openPlanModal() {
+        this.planModal.provider = 'gemini';
+        this.planModal.modelId = this.geminiModels[0]?.id || null;
+        this.planModal.tasks = [];
+        this.planModal.report = '';
+        this.planModal.error = '';
+        this.planModal.addedTasks = new Set();
+        this.planModal.showReport = false;
+        this.modals.plan = true;
+      },
+
+      async generatePlan() {
+        if (!this.activeProject) return;
+
+        const provider = this.planModal.provider;
+        const modelId = this.planModal.modelId;
+
+        this.planModal.generating = true;
+        this.planModal.error = '';
+        this.planModal.tasks = [];
+        this.planModal.report = '';
+        this.planModal.addedTasks = new Set();
+
+        try {
+          const res = await fetch(
+            `/api/projects/${this.activeProject.id}/plan`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ provider, model_id: modelId }),
+            },
+          );
+
+          const data = await res.json();
+
+          if (!res.ok) {
+            this.planModal.error = data.error || 'Failed to generate plan';
+            return;
+          }
+
+          this.planModal.tasks = data.tasks || [];
+          this.planModal.report = data.report || '';
+
+          if (this.planModal.tasks.length === 0) {
+            this.planModal.error =
+              'No tasks were generated. Try a more detailed project description.';
+          }
+        } catch (e) {
+          console.error('Failed to generate plan:', e);
+          this.planModal.error = 'Failed to generate plan: ' + e.message;
+        } finally {
+          this.planModal.generating = false;
+        }
+      },
+
+      async addTaskToTodo(task, index) {
+        if (!this.activeProject) return;
+
+        try {
+          const formData = new FormData();
+          formData.append('project_id', this.activeProject.id);
+          formData.append('title', task.title);
+          formData.append('description', task.description);
+          formData.append('priority', 'medium');
+          formData.append('type', 'Enhancement');
+          formData.append('status', 'todo');
+          formData.append('provider', this.planModal.provider);
+          formData.append('model', this.planModal.modelId);
+
+          await window.ApiService.issues.create(formData);
+
+          this.planModal.addedTasks.add(index);
+          this.planModal.addedTasks = new Set(this.planModal.addedTasks);
+
+          window.notify(
+            'Task added to todo list',
+            'success',
+            'fa-check-circle',
+          );
+
+          await this.fetchCounts();
+        } catch (e) {
+          console.error('Failed to add task:', e);
+          window.notify(
+            'Failed to add task: ' + e.message,
+            'error',
+            'fa-circle-exclamation',
+          );
         }
       },
     }));
@@ -701,6 +827,9 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
     margin-top: 2rem;
     border-top: 1px solid #f0f0f0;
     padding-top: 1rem;
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
   }
 
   .empty-dashboard {

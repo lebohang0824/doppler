@@ -184,6 +184,19 @@ export const ApiService = {
       if (!res.ok) throw new Error('Failed to fetch project counts');
       return await res.json();
     },
+
+    async generatePlan(id, provider, modelId) {
+      const res = await fetch(`/api/projects/${id}/plan`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, model_id: modelId }),
+      });
+      if (!res.ok) {
+        const data = await res.json();
+        throw new Error(data.error || 'Failed to generate plan');
+      }
+      return await res.json();
+    },
   },
 
   // Settings related calls
