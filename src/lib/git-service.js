@@ -46,6 +46,7 @@ export async function initializeWithFirstCommit(dir) {
   }
 
   if (!isRepoRoot) {
+    fs.writeFileSync(`${dir}/README.md`, '');
     await git.init();
     await git.add('.');
     await git.commit('Initial commit');
