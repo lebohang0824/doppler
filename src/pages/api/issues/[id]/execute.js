@@ -43,9 +43,21 @@ export const POST = async ({ params }) => {
 
     const provider =
       selectedModel?.provider === 'gemini' ? 'gemini' : 'opencode';
-    const isBusy = isGeminiRunning() || isOpencodeRunning();
-    const targetStatus = isBusy ? 'queued' : 'executing';
+    let isBusy = isGeminiRunning() || isOpencodeRunning();
     const modelId = selectedModel?.model_id || null;
+
+    let targetStatus = isBusy ? 'queued' : 'executing';
+    if (targetStatus === 'executing') {
+      const projectCounts = await IssueService.getCountsByProject(
+        issue.project_id,
+      );
+      if (projectCounts.testing > 0) {
+        isBusy = true;
+        targetStatus = 'queued';
+      } else {
+        targetStatus = 'executing';
+      }
+    }
 
     await IssueService.update(id, {
       status: targetStatus,
@@ -74,6 +86,13 @@ export const POST = async ({ params }) => {
     }
 
     let actualStartTime = null;
+
+    if (isBusy) {
+      return new Response(JSON.stringify({ status: targetStatus }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    }
 
     if (provider === 'opencode') {
       runOpencodeRequest(
