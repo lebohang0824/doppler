@@ -118,7 +118,7 @@ function executeGemini(args, cwd, onStart) {
     });
 
     if (isWindows) {
-      child.unref();
+      currentProcess.unref();
     }
 
     if (onStart && currentProcess.pid) {
