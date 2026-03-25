@@ -1,5 +1,9 @@
 import { spawn } from 'node:child_process';
-import { isGlobalRunning, setGlobalRunning, registerProcessor } from './execution-lock.js';
+import {
+  isGlobalRunning,
+  setGlobalRunning,
+  registerProcessor,
+} from './execution-lock.js';
 
 let opencodeCommand = 'opencode';
 const queue = [];
@@ -79,12 +83,18 @@ async function processQueue() {
 
 function executeOpencode(args, cwd, onStart) {
   return new Promise((resolve, reject) => {
+    const isWindows = process.platform === 'win32';
+
     currentProcess = spawn(opencodeCommand, args, {
       cwd,
       shell: true,
-      detached: true,
+      detached: !isWindows,
       env: { ...process.env, CI: 'true' },
     });
+
+    if (isWindows) {
+      child.unref();
+    }
 
     if (onStart && currentProcess.pid) {
       try {

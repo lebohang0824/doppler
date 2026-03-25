@@ -1,5 +1,9 @@
 import { spawn } from 'node:child_process';
-import { isGlobalRunning, setGlobalRunning, registerProcessor } from './execution-lock.js';
+import {
+  isGlobalRunning,
+  setGlobalRunning,
+  registerProcessor,
+} from './execution-lock.js';
 
 let geminiCommand = 'gemini';
 const queue = [];
@@ -36,7 +40,7 @@ export function cancelGeminiRequest() {
       console.warn('Failed to kill process group:', e);
       currentProcess.kill('SIGTERM');
     }
-    
+
     if (currentReject) {
       currentReject(new Error('Execution cancelled by user'));
     }
@@ -104,12 +108,18 @@ async function processQueue() {
 
 function executeGemini(args, cwd, onStart) {
   return new Promise((resolve, reject) => {
+    const isWindows = process.platform === 'win32';
+
     currentProcess = spawn(geminiCommand, args, {
       cwd,
       shell: true,
-      detached: true,
+      detached: !isWindows,
       env: { ...process.env, CI: 'true' }, // helping some CLIs detect non-interactive mode
     });
+
+    if (isWindows) {
+      child.unref();
+    }
 
     if (onStart && currentProcess.pid) {
       try {
