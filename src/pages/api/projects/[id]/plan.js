@@ -1,4 +1,5 @@
 import { ProjectService } from '../../../../lib/services/project-service.js';
+import { IssueService } from '../../../../lib/services/issue-service.js';
 import { SettingsService } from '../../../../lib/services/settings-service.js';
 import {
   runGeminiRequest,
@@ -6,6 +7,8 @@ import {
 import {
   runOpencodeRequest,
 } from '../../../../lib/opencode-service.js';
+
+const EXCLUDED_STATUSES = ['todo', 'queued', 'executing', 'testing', 'done'];
 
 export const POST = async ({ params, request }) => {
   const { id } = params;
@@ -26,6 +29,15 @@ export const POST = async ({ params, request }) => {
       });
     }
 
+    const allIssues = await IssueService.getAll(id);
+    const existingTasks = allIssues
+      .filter(issue => EXCLUDED_STATUSES.includes(issue.status.toLowerCase()))
+      .map(issue => `- ${issue.title}`);
+
+    const existingTasksSection = existingTasks.length > 0
+      ? `\n\nIMPORTANT: Do NOT suggest tasks that are already in progress, completed, or queued. The following tasks already exist:\n${existingTasks.join('\n')}`
+      : '';
+
     if (!project.description || project.description.trim().length < 10) {
       return new Response(
         JSON.stringify({ 
@@ -45,7 +57,7 @@ export const POST = async ({ params, request }) => {
 Format the output as a JSON array of tasks with "title" and "description" fields. 
 Each task should be a specific, actionable item that can be implemented independently.
 Project Description:
-${project.description}
+${project.description}${existingTasksSection}
 
 Respond ONLY with a valid JSON array in this exact format:
 [{"title": "Task title", "description": "Task description"}, ...]`;
