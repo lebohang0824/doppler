@@ -45,6 +45,14 @@ export class IssueService {
     return await this.update(id, { status, ...extraData });
   }
 
+  static async getByStatus(projectId, status) {
+    return await db
+      .select()
+      .from(Issue)
+      .where(and(eq(Issue.project_id, projectId), eq(Issue.status, status)))
+      .orderBy(desc(Issue.created_at));
+  }
+
   static async getCountsByProject(projectId) {
     const results = await db
       .select({ status: Issue.status, count: count() })

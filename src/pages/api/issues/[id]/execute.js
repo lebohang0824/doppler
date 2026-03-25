@@ -43,15 +43,20 @@ export const POST = async ({ params }) => {
 
     const provider =
       selectedModel?.provider === 'gemini' ? 'gemini' : 'opencode';
-    let isBusy = isGeminiRunning() || isOpencodeRunning();
     const modelId = selectedModel?.model_id || null;
 
+    let isGemini = isGeminiRunning();
+    let isOpencode = isOpencodeRunning();
+    let isBusy = isGemini || isOpencode;
     let targetStatus = isBusy ? 'queued' : 'executing';
+
     if (targetStatus === 'executing') {
-      const projectCounts = await IssueService.getCountsByProject(
+      const queuedIssues = await IssueService.getByStatus(
         issue.project_id,
+        'testing',
       );
-      if (projectCounts.testing > 0) {
+
+      if (queuedIssues.length) {
         isBusy = true;
         targetStatus = 'queued';
       } else {

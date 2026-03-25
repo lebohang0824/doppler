@@ -2,6 +2,20 @@ import { IssueService } from '../../../../lib/services/issue-service.js';
 import { ProjectService } from '../../../../lib/services/project-service.js';
 import { LogService } from '../../../../lib/services/log-service.js';
 import { commit } from '../../../../lib/git-service.js';
+import { POST as Execute } from '../[id]/execute.js';
+
+async function triggerQueuedExecution(projectId, request) {
+  try {
+    const queuedIssues = await IssueService.getByStatus(projectId, 'queued');
+
+    if (queuedIssues.length) {
+      const nextIssue = queuedIssues[0];
+      await Execute({ params: { id: nextIssue.id } });
+    }
+  } catch (e) {
+    console.error(`[triggerQueuedExecution] ERROR:`, e);
+  }
+}
 
 export const POST = async ({ params, request }) => {
   const { id } = params;
@@ -60,8 +74,15 @@ export const POST = async ({ params, request }) => {
     // Update status to done
     await IssueService.updateStatus(id, 'done');
 
+    // Trigger execution of any queued issues
+    await triggerQueuedExecution(issue.project_id, request);
+
     // Log the approval
-    await LogService.create(id, 'Approved', `Issue approved and committed: ${message}`);
+    await LogService.create(
+      id,
+      'Approved',
+      `Issue approved and committed: ${message}`,
+    );
 
     return new Response(JSON.stringify({ success: true, status: 'done' }), {
       status: 200,
