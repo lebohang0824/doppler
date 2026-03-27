@@ -813,6 +813,9 @@ const currentProjectId = Astro.url.searchParams.get('project_id');
   .info-row .value {
     color: var(--text-color);
     font-size: 1rem;
+    max-height: 80px; /* Adjust as needed */
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .info-row .value.code {
