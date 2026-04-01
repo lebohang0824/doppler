@@ -198,7 +198,10 @@ const projectId = Astro.url.searchParams.get('project_id');
           if (this.mode === 'create') {
             await window.ApiService.projects.create(this.projectForm);
           } else {
-            await window.ApiService.projects.update(this.projectForm.id, this.projectForm);
+            await window.ApiService.projects.update(
+              this.projectForm.id,
+              this.projectForm,
+            );
           }
 
           window.notify(
@@ -297,7 +300,7 @@ const projectId = Astro.url.searchParams.get('project_id');
     opacity: 0.8;
     margin-bottom: 1rem;
     flex-grow: 1;
-    max-height: 60px; /* Approximate 3 lines of text */
+    height: 80px; /* Approximate 3 lines of text */
     overflow: hidden;
     text-overflow: ellipsis;
   }
