@@ -23,8 +23,11 @@ export const GET = async () => {
     });
   }
 
-  const gemini = checkCommand('which gemini');
-  const opencode = checkCommand('which opencode');
+  // A better way to check the command exists on windows needs to be explored
+  const isWindows = process.platform === 'win32';
+
+  const gemini = isWindows ? true : checkCommand('which gemini');
+  const opencode = isWindows ? true : checkCommand('which opencode');
 
   const available = [];
   if (gemini) available.push('gemini');
