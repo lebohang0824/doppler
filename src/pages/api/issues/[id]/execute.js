@@ -153,7 +153,8 @@ export const POST = async ({ params }) => {
           await IssueService.updateStatus(id, 'todo');
         });
     } else {
-      const args = ['--prompt', prompt];
+      const escapedPrompt = prompt.replace(/"/g, '\"');
+      const args = ['--prompt', `"${escapedPrompt}"`];
 
       runGeminiRequest(
         args,

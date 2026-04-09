@@ -72,7 +72,8 @@ Respond ONLY with a valid JSON array in this exact format:
         model_id
       );
     } else {
-      const args = ['--prompt', prompt];
+      const escapedPrompt = prompt.replace(/"/g, '\"');
+      const args = ['--prompt', `"${escapedPrompt}"`];
       aiResult = await runGeminiRequest(
         args,
         project.directory,
